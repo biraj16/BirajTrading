@@ -30,7 +30,6 @@ namespace TradingConsole.Wpf.Services
         public decimal CurrentLongEma { get; set; }
     }
 
-    // --- NEW: Internal state for tracking custom level breakouts/breakdowns ---
     internal enum PriceZone { Inside, Above, Below }
     internal class CustomLevelState
     {
@@ -39,7 +38,9 @@ namespace TradingConsole.Wpf.Services
         public PriceZone LastZone { get; set; } = PriceZone.Inside;
     }
 
-
+    /// <summary>
+    /// --- MODIFIED: Added Candlestick signal properties ---
+    /// </summary>
     public class AnalysisResult : ObservableModel
     {
         private string _securityId = string.Empty;
@@ -62,8 +63,15 @@ namespace TradingConsole.Wpf.Services
         private string _dayRangeSignal = "Neutral";
         private string _openDriveSignal = "Neutral";
         private string _customLevelSignal = "N/A";
-        public string CustomLevelSignal { get => _customLevelSignal; set { if (_customLevelSignal != value) { _customLevelSignal = value; OnPropertyChanged(); } } }
 
+        // --- NEW: Candlestick Pattern Signals ---
+        private string _candleSignal1Min = "N/A";
+        public string CandleSignal1Min { get => _candleSignal1Min; set { if (_candleSignal1Min != value) { _candleSignal1Min = value; OnPropertyChanged(); } } }
+        private string _candleSignal5Min = "N/A";
+        public string CandleSignal5Min { get => _candleSignal5Min; set { if (_candleSignal5Min != value) { _candleSignal5Min = value; OnPropertyChanged(); } } }
+
+
+        public string CustomLevelSignal { get => _customLevelSignal; set { if (_customLevelSignal != value) { _customLevelSignal = value; OnPropertyChanged(); } } }
         public string SecurityId { get => _securityId; set { _securityId = value; OnPropertyChanged(); } }
         public string Symbol { get => _symbol; set { _symbol = value; OnPropertyChanged(); } }
         public decimal Vwap { get => _vwap; set { if (_vwap != value) { _vwap = value; OnPropertyChanged(); } } }
@@ -111,7 +119,6 @@ namespace TradingConsole.Wpf.Services
     {
         #region Parameters and State
         private readonly SettingsViewModel _settingsViewModel;
-        // --- NEW: Dictionary to hold the state for each index's custom level analysis ---
         private readonly Dictionary<string, CustomLevelState> _customLevelStates = new();
 
         public int ShortEmaLength { get; set; } = 9;
@@ -146,7 +153,6 @@ namespace TradingConsole.Wpf.Services
                 _tickAnalysisState[instrument.SecurityId] = (0, 0, new List<decimal>());
                 _multiTimeframeCandles[instrument.SecurityId] = new Dictionary<TimeSpan, List<Candle>>();
                 _multiTimeframeAnalysisState[instrument.SecurityId] = new Dictionary<TimeSpan, TimeframeAnalysisState>();
-                // --- NEW: Initialize state for custom levels when a new index is seen ---
                 if (instrument.SegmentId == 0)
                 {
                     _customLevelStates[instrument.Symbol] = new CustomLevelState();
@@ -202,6 +208,9 @@ namespace TradingConsole.Wpf.Services
             }
         }
 
+        /// <summary>
+        /// --- MODIFIED: Now calculates candlestick pattern signals. ---
+        /// </summary>
         private void RunComplexAnalysis(DashboardInstrument instrument)
         {
             var tickState = _tickAnalysisState[instrument.SecurityId];
@@ -238,8 +247,16 @@ namespace TradingConsole.Wpf.Services
             }
 
             var paSignals = CalculatePriceActionSignals(instrument, vwap);
-
             string customLevelSignal = CalculateCustomLevelSignal(instrument);
+
+            // --- NEW: Calculate Candlestick patterns for 1m and 5m ---
+            string candleSignal1Min = "N/A";
+            if (oneMinCandles != null) candleSignal1Min = RecognizeCandlestickPattern(oneMinCandles);
+
+            string candleSignal5Min = "N/A";
+            var fiveMinCandles = _multiTimeframeCandles[instrument.SecurityId].GetValueOrDefault(TimeSpan.FromMinutes(5));
+            if (fiveMinCandles != null) candleSignal5Min = RecognizeCandlestickPattern(fiveMinCandles);
+
 
             var finalResult = new AnalysisResult
             {
@@ -254,6 +271,8 @@ namespace TradingConsole.Wpf.Services
                 VolumeSignal = volumeSignal,
                 OiSignal = oiSignal,
                 CustomLevelSignal = customLevelSignal,
+                CandleSignal1Min = candleSignal1Min,
+                CandleSignal5Min = candleSignal5Min,
                 EmaSignal1Min = mtaSignals.GetValueOrDefault(TimeSpan.FromMinutes(1), "N/A"),
                 EmaSignal5Min = mtaSignals.GetValueOrDefault(TimeSpan.FromMinutes(5), "N/A"),
                 EmaSignal15Min = mtaSignals.GetValueOrDefault(TimeSpan.FromMinutes(15), "N/A"),
@@ -388,9 +407,6 @@ namespace TradingConsole.Wpf.Services
             return (priceVsVwap, priceVsClose, dayRange, openDrive);
         }
 
-        /// <summary>
-        /// --- MODIFIED: Implements stateful breakout/breakdown logic. ---
-        /// </summary>
         private string CalculateCustomLevelSignal(DashboardInstrument instrument)
         {
             if (instrument.SegmentId != 0) return "N/A";
@@ -398,7 +414,6 @@ namespace TradingConsole.Wpf.Services
             var levels = _settingsViewModel.GetLevelsForIndex(instrument.Symbol);
             if (levels == null) return "No Levels Set";
 
-            // Ensure state exists for the current index
             if (!_customLevelStates.ContainsKey(instrument.Symbol))
             {
                 _customLevelStates[instrument.Symbol] = new CustomLevelState();
@@ -408,51 +423,88 @@ namespace TradingConsole.Wpf.Services
             decimal ltp = instrument.LTP;
             PriceZone currentZone;
 
-            // 1. Determine the current price zone
             if (ltp > levels.NoTradeUpperBand) currentZone = PriceZone.Above;
             else if (ltp < levels.NoTradeLowerBand) currentZone = PriceZone.Below;
             else currentZone = PriceZone.Inside;
 
-            // 2. Check for state transitions
             if (currentZone != state.LastZone)
             {
-                // Transitioning from Inside to Above -> Breakout
-                if (state.LastZone == PriceZone.Inside && currentZone == PriceZone.Above)
-                {
-                    state.BreakoutCount++;
-                }
-                // Transitioning from Inside to Below -> Breakdown
-                else if (state.LastZone == PriceZone.Inside && currentZone == PriceZone.Below)
-                {
-                    state.BreakdownCount++;
-                }
-                // Update the last known zone
+                if (state.LastZone == PriceZone.Inside && currentZone == PriceZone.Above) state.BreakoutCount++;
+                else if (state.LastZone == PriceZone.Inside && currentZone == PriceZone.Below) state.BreakdownCount++;
                 state.LastZone = currentZone;
             }
 
-            // 3. Generate the signal string based on the current zone and counts
             switch (currentZone)
             {
-                case PriceZone.Inside:
-                    return "No trade zone";
-                case PriceZone.Above:
-                    return $"{GetOrdinal(state.BreakoutCount)} Breakout";
-                case PriceZone.Below:
-                    return $"{GetOrdinal(state.BreakdownCount)} Breakdown";
-                default:
-                    return "N/A";
+                case PriceZone.Inside: return "No trade zone";
+                case PriceZone.Above: return $"{GetOrdinal(state.BreakoutCount)} Breakout";
+                case PriceZone.Below: return $"{GetOrdinal(state.BreakdownCount)} Breakdown";
+                default: return "N/A";
             }
         }
+
+        /// <summary>
+        /// --- NEW: Recognizes candlestick patterns and includes volume confirmation. ---
+        /// </summary>
+        private string RecognizeCandlestickPattern(List<Candle> candles)
+        {
+            if (candles.Count < 2) return "N/A";
+
+            var current = candles.Last();
+            var previous = candles[candles.Count - 2];
+
+            decimal bodySize = Math.Abs(current.Open - current.Close);
+            decimal previousBodySize = Math.Abs(previous.Open - previous.Close);
+            decimal range = current.High - current.Low;
+
+            // Calculate volume change
+            string volInfo = "";
+            if (previous.Volume > 0)
+            {
+                decimal volChange = ((decimal)current.Volume - previous.Volume) / previous.Volume;
+                if (volChange > 0.1m) // Only show if volume increased by more than 10%
+                {
+                    volInfo = $" (+{volChange:P0} Vol)";
+                }
+            }
+
+            // Bullish Engulfing
+            if (current.Close > current.Open && previous.Close < previous.Open && // Current is green, previous is red
+                current.Close > previous.Open && current.Open < previous.Close)
+            {
+                return $"Bullish Engulfing{volInfo}";
+            }
+
+            // Bearish Engulfing
+            if (current.Close < current.Open && previous.Close > previous.Open && // Current is red, previous is green
+                current.Open > previous.Close && current.Close < previous.Open)
+            {
+                return $"Bearish Engulfing{volInfo}";
+            }
+
+            // Marubozu
+            if (range > 0 && bodySize / range > 0.95m) // Body is >95% of the total candle range
+            {
+                if (current.Close > current.Open) return $"Bullish Marubozu{volInfo}";
+                if (current.Close < current.Open) return $"Bearish Marubozu{volInfo}";
+            }
+
+            // Doji
+            if (range > 0 && bodySize / range < 0.1m) // Body is <10% of the total candle range
+            {
+                return "Doji";
+            }
+
+            return "N/A";
+        }
+
 
         private string GetOrdinal(int num)
         {
             if (num <= 0) return num.ToString();
             switch (num % 100)
             {
-                case 11:
-                case 12:
-                case 13:
-                    return num + "th";
+                case 11: case 12: case 13: return num + "th";
             }
             switch (num % 10)
             {

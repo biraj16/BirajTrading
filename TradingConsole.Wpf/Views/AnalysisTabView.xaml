@@ -73,6 +73,54 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Symbol" Binding="{Binding Symbol}" Width="1.5*"/>
 
+                <!-- NEW: Candlestick Pattern Columns -->
+                <DataGridTemplateColumn Header="1m Candle" Width="1.5*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding CandleSignal1Min}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CandleSignal1Min, Converter={StaticResource ValueToSignConverter}, ConverterParameter=ContainsBullish}">
+                                                <Setter Property="Foreground" Value="DarkGreen"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CandleSignal1Min, Converter={StaticResource ValueToSignConverter}, ConverterParameter=ContainsBearish}">
+                                                <Setter Property="Foreground" Value="DarkRed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CandleSignal1Min, Converter={StaticResource ValueToSignConverter}, ConverterParameter=ContainsDoji}">
+                                                <Setter Property="Foreground" Value="DarkOrange"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="5m Candle" Width="1.5*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding CandleSignal5Min}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CandleSignal5Min, Converter={StaticResource ValueToSignConverter}, ConverterParameter=ContainsBullish}">
+                                                <Setter Property="Foreground" Value="DarkGreen"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CandleSignal5Min, Converter={StaticResource ValueToSignConverter}, ConverterParameter=ContainsBearish}">
+                                                <Setter Property="Foreground" Value="DarkRed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CandleSignal5Min, Converter={StaticResource ValueToSignConverter}, ConverterParameter=ContainsDoji}">
+                                                <Setter Property="Foreground" Value="DarkOrange"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <!-- Custom Level Signal Column (Added from V1) -->
                 <DataGridTemplateColumn Header="Custom Level" Width="1.2*">
                     <DataGridTemplateColumn.CellTemplate>

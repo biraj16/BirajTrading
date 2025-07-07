@@ -8,8 +8,19 @@ namespace TradingConsole.Wpf.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // This converter checks if a numeric value is positive, negative, or zero.
-            // It's used by the XAML Style to apply the correct color (green for positive, red for negative).
+            // --- MODIFIED: Handle string contains check for candlestick patterns ---
+            if (value is string strValue && parameter is string paramStr)
+            {
+                // Note: Using Contains is case-sensitive. For case-insensitivity, you'd use IndexOf with StringComparison.
+                if (paramStr == "ContainsBreakout" && strValue.Contains("Breakout")) return true;
+                if (paramStr == "ContainsBreakdown" && strValue.Contains("Breakdown")) return true;
+                if (paramStr == "ContainsBullish" && strValue.Contains("Bullish")) return true;
+                if (paramStr == "ContainsBearish" && strValue.Contains("Bearish")) return true;
+                if (paramStr == "ContainsDoji" && strValue.Contains("Doji")) return true;
+                return false;
+            }
+
+            // Existing numeric logic
             if (value is decimal decValue)
             {
                 if (decValue > 0) return "Positive";
