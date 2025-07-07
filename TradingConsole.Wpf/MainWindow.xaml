@@ -311,6 +311,57 @@
                             </Grid>
                         </StackPanel>
                     </GroupBox>
+
+                    <!-- NEW: Custom Index Levels GroupBox -->
+                    <GroupBox Header="Custom Index Levels" Padding="15" Margin="10,5,5,5" MinWidth="450" FontWeight="SemiBold" BorderBrush="#DDDDDD">
+                        <Grid DataContext="{Binding Settings}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Headers -->
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="NTZ Lower" FontWeight="Bold" HorizontalAlignment="Center" Margin="5"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="NTZ Upper" FontWeight="Bold" HorizontalAlignment="Center" Margin="5"/>
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="Support" FontWeight="Bold" HorizontalAlignment="Center" Margin="5"/>
+                            <TextBlock Grid.Row="0" Grid.Column="4" Text="Resistance" FontWeight="Bold" HorizontalAlignment="Center" Margin="5"/>
+                            <TextBlock Grid.Row="0" Grid.Column="5" Text="Threshold" FontWeight="Bold" HorizontalAlignment="Center" Margin="5"/>
+
+                            <!-- Nifty Row -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Nifty:" FontWeight="Bold" VerticalAlignment="Center" Margin="5"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding NiftyNoTradeLower}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding NiftyNoTradeUpper}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding NiftySupport}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding NiftyResistance}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="1" Grid.Column="5" Text="{Binding NiftyThreshold}" Margin="2" Padding="3"/>
+
+                            <!-- BankNifty Row -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="BankNifty:" FontWeight="Bold" VerticalAlignment="Center" Margin="5"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding BankniftyNoTradeLower}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="2" Grid.Column="2" Text="{Binding BankniftyNoTradeUpper}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding BankniftySupport}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding BankniftyResistance}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="2" Grid.Column="5" Text="{Binding BankniftyThreshold}" Margin="2" Padding="3"/>
+
+                            <!-- Sensex Row -->
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Sensex:" FontWeight="Bold" VerticalAlignment="Center" Margin="5"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SensexNoTradeLower}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="3" Grid.Column="2" Text="{Binding SensexNoTradeUpper}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding SensexSupport}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="3" Grid.Column="4" Text="{Binding SensexResistance}" Margin="2" Padding="3"/>
+                            <TextBox Grid.Row="3" Grid.Column="5" Text="{Binding SensexThreshold}" Margin="2" Padding="3"/>
+                        </Grid>
+                    </GroupBox>
                 </StackPanel>
             </TabItem>
 

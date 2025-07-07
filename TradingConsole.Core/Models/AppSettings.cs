@@ -4,29 +4,32 @@ using System.Collections.Generic;
 namespace TradingConsole.Core.Models
 {
     /// <summary>
+    /// Represents a set of user-defined trading levels for a specific index.
+    /// </summary>
+    public class IndexLevels
+    {
+        public decimal NoTradeUpperBand { get; set; }
+        public decimal NoTradeLowerBand { get; set; }
+        public decimal SupportLevel { get; set; }
+        public decimal ResistanceLevel { get; set; }
+        public decimal Threshold { get; set; } // The point/price value for the S/R threshold band.
+    }
+
+    /// <summary>
     /// Represents the application's user-configurable settings that will be saved to a file.
     /// </summary>
     public class AppSettings
     {
-        /// <summary>
-        /// Stores the freeze quantity limits for different index options.
-        /// The key is the index name (e.g., "NIFTY") and the value is the quantity.
-        /// </summary>
         public Dictionary<string, int> FreezeQuantities { get; set; }
-
-        /// <summary>
-        /// Stores the user's customized list of instruments for the dashboard.
-        /// Format: "TYPE:SYMBOL", e.g., "EQ:RELIANCE", "FUT:NIFTY", "IDX:Nifty 50"
-        /// </summary>
         public List<string> MonitoredSymbols { get; set; }
-
-        // NEW: EMA Lengths for Analysis Service
         public int ShortEmaLength { get; set; }
         public int LongEmaLength { get; set; }
 
+        // --- NEW: Dictionary to store custom levels for each index ---
+        public Dictionary<string, IndexLevels> CustomIndexLevels { get; set; }
+
         public AppSettings()
         {
-            // Initialize with default values.
             FreezeQuantities = new Dictionary<string, int>
             {
                 { "NIFTY", 1800 },
@@ -35,8 +38,6 @@ namespace TradingConsole.Core.Models
                 { "SENSEX", 1000 }
             };
 
-            // This default list is used only if a settings file doesn't exist.
-            // The user's configuration will be saved and loaded subsequently.
             MonitoredSymbols = new List<string>
             {
                 "IDX:Nifty 50",
@@ -57,9 +58,31 @@ namespace TradingConsole.Core.Models
                 "FUT:TCS"
             };
 
-            // NEW: Default EMA lengths
-            ShortEmaLength = 9;  // Default for short EMA
-            LongEmaLength = 21;  // Default for long EMA
+            ShortEmaLength = 9;
+            LongEmaLength = 21;
+
+            // --- NEW: Initialize with default placeholder levels ---
+            CustomIndexLevels = new Dictionary<string, IndexLevels>
+            {
+                {
+                    "NIFTY", new IndexLevels {
+                        NoTradeUpperBand = 23500, NoTradeLowerBand = 23400,
+                        SupportLevel = 23300, ResistanceLevel = 23600, Threshold = 20
+                    }
+                },
+                {
+                    "BANKNIFTY", new IndexLevels {
+                        NoTradeUpperBand = 50000, NoTradeLowerBand = 49800,
+                        SupportLevel = 49500, ResistanceLevel = 50500, Threshold = 50
+                    }
+                },
+                {
+                    "SENSEX", new IndexLevels {
+                        NoTradeUpperBand = 77000, NoTradeLowerBand = 76800,
+                        SupportLevel = 76500, ResistanceLevel = 77500, Threshold = 100
+                    }
+                }
+            };
         }
     }
 }

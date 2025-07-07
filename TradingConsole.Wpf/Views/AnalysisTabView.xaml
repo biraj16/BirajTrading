@@ -73,10 +73,35 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Symbol" Binding="{Binding Symbol}" Width="1.5*"/>
 
+                <!-- Custom Level Signal Column (Added from V1) -->
+                <DataGridTemplateColumn Header="Custom Level" Width="1.2*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding CustomLevelSignal}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CustomLevelSignal, Converter={StaticResource ValueToSignConverter}, ConverterParameter=ContainsBreakout}">
+                                                <Setter Property="Foreground" Value="DarkGreen"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CustomLevelSignal, Converter={StaticResource ValueToSignConverter}, ConverterParameter=ContainsBreakdown}">
+                                                <Setter Property="Foreground" Value="DarkRed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CustomLevelSignal}" Value="No trade zone">
+                                                <Setter Property="Foreground" Value="OrangeRed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <!-- Restored VWAP Column -->
                 <DataGridTextColumn Header="VWAP" Binding="{Binding Vwap, StringFormat=N2}" Width="*"/>
 
-                <!-- NEW: Price Action Signal Columns -->
+                <!-- Price Action Signal Columns -->
                 <DataGridTemplateColumn Header="vs VWAP" Width="*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -161,7 +186,7 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <!-- NEW: OI Signal Column -->
+                <!-- OI Signal Column -->
                 <DataGridTemplateColumn Header="OI Signal" Width="1.2*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -193,7 +218,7 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <!-- Restored EMA Columns -->
+                <!-- EMA Columns with Enhanced Styling -->
                 <DataGridTextColumn Header="1 Min EMA" Binding="{Binding EmaSignal1Min}" Width="*" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
@@ -243,16 +268,16 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
 
-                <!-- Restored IV Columns -->
+                <!-- IV Columns -->
                 <DataGridTextColumn Header="Current IV" Binding="{Binding CurrentIv, StringFormat='{}{0:F2}%'}" Width="*"/>
                 <DataGridTextColumn Header="Avg IV" Binding="{Binding AvgIv, StringFormat='{}{0:F2}%'}" Width="*"/>
                 <DataGridTextColumn Header="IV Signal" Binding="{Binding IvSignal}" Width="1.2*"/>
 
-                <!-- Restored Volume Columns -->
+                <!-- Volume Columns -->
                 <DataGridTextColumn Header="Current Vol" Binding="{Binding CurrentVolume, StringFormat=N0}" Width="*"/>
                 <DataGridTextColumn Header="Avg Vol" Binding="{Binding AvgVolume, StringFormat=N0}" Width="*"/>
 
-                <!-- Restored and Styled Vol Signal Column -->
+                <!-- Volume Signal Column with Styling -->
                 <DataGridTemplateColumn Header="Vol Signal" Width="1.2*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>

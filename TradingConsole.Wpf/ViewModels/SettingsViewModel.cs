@@ -17,56 +17,65 @@ namespace TradingConsole.Wpf.ViewModels
         private readonly SettingsService _settingsService;
         private AppSettings _settings;
 
-        // Expose the list of monitored symbols for other ViewModels to read
         public ReadOnlyCollection<string> MonitoredSymbols => new ReadOnlyCollection<string>(_settings.MonitoredSymbols);
 
+        #region Freeze Quantities
         private int _niftyFreezeQuantity;
-        public int NiftyFreezeQuantity
-        {
-            get => _niftyFreezeQuantity;
-            set { _niftyFreezeQuantity = value; OnPropertyChanged(); }
-        }
-
+        public int NiftyFreezeQuantity { get => _niftyFreezeQuantity; set { _niftyFreezeQuantity = value; OnPropertyChanged(); } }
         private int _bankNiftyFreezeQuantity;
-        public int BankNiftyFreezeQuantity
-        {
-            get => _bankNiftyFreezeQuantity;
-            set { _bankNiftyFreezeQuantity = value; OnPropertyChanged(); }
-        }
-
+        public int BankNiftyFreezeQuantity { get => _bankNiftyFreezeQuantity; set { _bankNiftyFreezeQuantity = value; OnPropertyChanged(); } }
         private int _finNiftyFreezeQuantity;
-        public int FinNiftyFreezeQuantity
-        {
-            get => _finNiftyFreezeQuantity;
-            set { _finNiftyFreezeQuantity = value; OnPropertyChanged(); }
-        }
-
+        public int FinNiftyFreezeQuantity { get => _finNiftyFreezeQuantity; set { _finNiftyFreezeQuantity = value; OnPropertyChanged(); } }
         private int _sensexFreezeQuantity;
-        public int SensexFreezeQuantity
-        {
-            get => _sensexFreezeQuantity;
-            set { _sensexFreezeQuantity = value; OnPropertyChanged(); }
-        }
+        public int SensexFreezeQuantity { get => _sensexFreezeQuantity; set { _sensexFreezeQuantity = value; OnPropertyChanged(); } }
+        #endregion
 
-        // NEW: Short EMA Length property
+        #region EMA Lengths
         private int _shortEmaLength;
-        public int ShortEmaLength
-        {
-            get => _shortEmaLength;
-            set { if (_shortEmaLength != value) { _shortEmaLength = value; OnPropertyChanged(); } }
-        }
-
-        // NEW: Long EMA Length property
+        public int ShortEmaLength { get => _shortEmaLength; set { if (_shortEmaLength != value) { _shortEmaLength = value; OnPropertyChanged(); } } }
         private int _longEmaLength;
-        public int LongEmaLength
-        {
-            get => _longEmaLength;
-            set { if (_longEmaLength != value) { _longEmaLength = value; OnPropertyChanged(); } }
-        }
+        public int LongEmaLength { get => _longEmaLength; set { if (_longEmaLength != value) { _longEmaLength = value; OnPropertyChanged(); } } }
+        #endregion
+
+        #region NEW: Custom Index Levels
+        // --- NIFTY ---
+        private decimal _niftyNoTradeUpper;
+        public decimal NiftyNoTradeUpper { get => _niftyNoTradeUpper; set { _niftyNoTradeUpper = value; OnPropertyChanged(); } }
+        private decimal _niftyNoTradeLower;
+        public decimal NiftyNoTradeLower { get => _niftyNoTradeLower; set { _niftyNoTradeLower = value; OnPropertyChanged(); } }
+        private decimal _niftySupport;
+        public decimal NiftySupport { get => _niftySupport; set { _niftySupport = value; OnPropertyChanged(); } }
+        private decimal _niftyResistance;
+        public decimal NiftyResistance { get => _niftyResistance; set { _niftyResistance = value; OnPropertyChanged(); } }
+        private decimal _niftyThreshold;
+        public decimal NiftyThreshold { get => _niftyThreshold; set { _niftyThreshold = value; OnPropertyChanged(); } }
+
+        // --- BANKNIFTY ---
+        private decimal _bankniftyNoTradeUpper;
+        public decimal BankniftyNoTradeUpper { get => _bankniftyNoTradeUpper; set { _bankniftyNoTradeUpper = value; OnPropertyChanged(); } }
+        private decimal _bankniftyNoTradeLower;
+        public decimal BankniftyNoTradeLower { get => _bankniftyNoTradeLower; set { _bankniftyNoTradeLower = value; OnPropertyChanged(); } }
+        private decimal _bankniftySupport;
+        public decimal BankniftySupport { get => _bankniftySupport; set { _bankniftySupport = value; OnPropertyChanged(); } }
+        private decimal _bankniftyResistance;
+        public decimal BankniftyResistance { get => _bankniftyResistance; set { _bankniftyResistance = value; OnPropertyChanged(); } }
+        private decimal _bankniftyThreshold;
+        public decimal BankniftyThreshold { get => _bankniftyThreshold; set { _bankniftyThreshold = value; OnPropertyChanged(); } }
+
+        // --- SENSEX ---
+        private decimal _sensexNoTradeUpper;
+        public decimal SensexNoTradeUpper { get => _sensexNoTradeUpper; set { _sensexNoTradeUpper = value; OnPropertyChanged(); } }
+        private decimal _sensexNoTradeLower;
+        public decimal SensexNoTradeLower { get => _sensexNoTradeLower; set { _sensexNoTradeLower = value; OnPropertyChanged(); } }
+        private decimal _sensexSupport;
+        public decimal SensexSupport { get => _sensexSupport; set { _sensexSupport = value; OnPropertyChanged(); } }
+        private decimal _sensexResistance;
+        public decimal SensexResistance { get => _sensexResistance; set { _sensexResistance = value; OnPropertyChanged(); } }
+        private decimal _sensexThreshold;
+        public decimal SensexThreshold { get => _sensexThreshold; set { _sensexThreshold = value; OnPropertyChanged(); } }
+        #endregion
 
         public ICommand SaveSettingsCommand { get; }
-
-        // NEW: Event to notify subscribers when settings are saved
         public event EventHandler? SettingsSaved;
 
         public SettingsViewModel(SettingsService settingsService)
@@ -85,35 +94,88 @@ namespace TradingConsole.Wpf.ViewModels
             FinNiftyFreezeQuantity = _settings.FreezeQuantities.GetValueOrDefault("FINNIFTY", 1800);
             SensexFreezeQuantity = _settings.FreezeQuantities.GetValueOrDefault("SENSEX", 1000);
 
-            // NEW: Load EMA lengths
             ShortEmaLength = _settings.ShortEmaLength;
             LongEmaLength = _settings.LongEmaLength;
+
+            // --- NEW: Load custom index levels ---
+            var niftyLevels = _settings.CustomIndexLevels.GetValueOrDefault("NIFTY", new IndexLevels());
+            NiftyNoTradeUpper = niftyLevels.NoTradeUpperBand;
+            NiftyNoTradeLower = niftyLevels.NoTradeLowerBand;
+            NiftySupport = niftyLevels.SupportLevel;
+            NiftyResistance = niftyLevels.ResistanceLevel;
+            NiftyThreshold = niftyLevels.Threshold;
+
+            var bankniftyLevels = _settings.CustomIndexLevels.GetValueOrDefault("BANKNIFTY", new IndexLevels());
+            BankniftyNoTradeUpper = bankniftyLevels.NoTradeUpperBand;
+            BankniftyNoTradeLower = bankniftyLevels.NoTradeLowerBand;
+            BankniftySupport = bankniftyLevels.SupportLevel;
+            BankniftyResistance = bankniftyLevels.ResistanceLevel;
+            BankniftyThreshold = bankniftyLevels.Threshold;
+
+            var sensexLevels = _settings.CustomIndexLevels.GetValueOrDefault("SENSEX", new IndexLevels());
+            SensexNoTradeUpper = sensexLevels.NoTradeUpperBand;
+            SensexNoTradeLower = sensexLevels.NoTradeLowerBand;
+            SensexSupport = sensexLevels.SupportLevel;
+            SensexResistance = sensexLevels.ResistanceLevel;
+            SensexThreshold = sensexLevels.Threshold;
         }
 
         private void ExecuteSaveSettings(object? parameter)
         {
-            // Update the settings object from the view model properties
             _settings.FreezeQuantities["NIFTY"] = NiftyFreezeQuantity;
             _settings.FreezeQuantities["BANKNIFTY"] = BankNiftyFreezeQuantity;
             _settings.FreezeQuantities["FINNIFTY"] = FinNiftyFreezeQuantity;
             _settings.FreezeQuantities["SENSEX"] = SensexFreezeQuantity;
 
-            // NEW: Save EMA lengths
             _settings.ShortEmaLength = ShortEmaLength;
             _settings.LongEmaLength = LongEmaLength;
 
-            // Save the updated settings to the file
+            // --- NEW: Save custom index levels ---
+            _settings.CustomIndexLevels["NIFTY"] = new IndexLevels
+            {
+                NoTradeUpperBand = NiftyNoTradeUpper,
+                NoTradeLowerBand = NiftyNoTradeLower,
+                SupportLevel = NiftySupport,
+                ResistanceLevel = NiftyResistance,
+                Threshold = NiftyThreshold
+            };
+            _settings.CustomIndexLevels["BANKNIFTY"] = new IndexLevels
+            {
+                NoTradeUpperBand = BankniftyNoTradeUpper,
+                NoTradeLowerBand = BankniftyNoTradeLower,
+                SupportLevel = BankniftySupport,
+                ResistanceLevel = BankniftyResistance,
+                Threshold = BankniftyThreshold
+            };
+            _settings.CustomIndexLevels["SENSEX"] = new IndexLevels
+            {
+                NoTradeUpperBand = SensexNoTradeUpper,
+                NoTradeLowerBand = SensexNoTradeLower,
+                SupportLevel = SensexSupport,
+                ResistanceLevel = SensexResistance,
+                Threshold = SensexThreshold
+            };
+
             _settingsService.SaveSettings(_settings);
-
             MessageBox.Show("Settings saved successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-
-            // NEW: Raise the SettingsSaved event
             SettingsSaved?.Invoke(this, EventArgs.Empty);
         }
 
-        /// <summary>
-        /// Adds a symbol to the monitored list and saves the settings.
-        /// </summary>
+        // --- NEW: Public method to get levels for a specific index ---
+        public IndexLevels? GetLevelsForIndex(string indexSymbol)
+        {
+            if (string.IsNullOrEmpty(indexSymbol)) return null;
+
+            string key = indexSymbol.ToUpper();
+            if (key.Contains("NIFTY") && !key.Contains("BANK")) key = "NIFTY";
+            else if (key.Contains("BANKNIFTY")) key = "BANKNIFTY";
+            else if (key.Contains("SENSEX")) key = "SENSEX";
+            else return null;
+
+            return _settings.CustomIndexLevels.GetValueOrDefault(key);
+        }
+
+
         public void AddMonitoredSymbol(string symbol)
         {
             if (!_settings.MonitoredSymbols.Any(s => s.Equals(symbol, StringComparison.OrdinalIgnoreCase)))
@@ -121,13 +183,10 @@ namespace TradingConsole.Wpf.ViewModels
                 _settings.MonitoredSymbols.Add(symbol);
                 _settingsService.SaveSettings(_settings);
                 OnPropertyChanged(nameof(MonitoredSymbols));
-                SettingsSaved?.Invoke(this, EventArgs.Empty); // Also notify on symbol change
+                SettingsSaved?.Invoke(this, EventArgs.Empty);
             }
         }
 
-        /// <summary>
-        /// Removes a symbol from the monitored list and saves the settings.
-        /// </summary>
         public void RemoveMonitoredSymbol(string symbol)
         {
             var symbolToRemove = _settings.MonitoredSymbols.FirstOrDefault(s => s.Equals(symbol, StringComparison.OrdinalIgnoreCase));
@@ -136,7 +195,7 @@ namespace TradingConsole.Wpf.ViewModels
                 _settings.MonitoredSymbols.Remove(symbolToRemove);
                 _settingsService.SaveSettings(_settings);
                 OnPropertyChanged(nameof(MonitoredSymbols));
-                SettingsSaved?.Invoke(this, EventArgs.Empty); // Also notify on symbol change
+                SettingsSaved?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -145,7 +204,7 @@ namespace TradingConsole.Wpf.ViewModels
             _settings.MonitoredSymbols = newSymbols;
             _settingsService.SaveSettings(_settings);
             OnPropertyChanged(nameof(MonitoredSymbols));
-            SettingsSaved?.Invoke(this, EventArgs.Empty); // Also notify on symbol change
+            SettingsSaved?.Invoke(this, EventArgs.Empty);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

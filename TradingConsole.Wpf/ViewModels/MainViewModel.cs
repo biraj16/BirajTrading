@@ -154,7 +154,8 @@ namespace TradingConsole.Wpf.ViewModels
             Settings = new SettingsViewModel(settingsService);
             Settings.SettingsSaved += Settings_SettingsSaved;
 
-            _analysisService = new AnalysisService();
+            // --- FIX: Pass the SettingsViewModel to the AnalysisService constructor ---
+            _analysisService = new AnalysisService(Settings);
             _analysisService.ShortEmaLength = Settings.ShortEmaLength;
             _analysisService.LongEmaLength = Settings.LongEmaLength;
             _analysisService.OnAnalysisUpdated += OnAnalysisResultUpdated;
@@ -206,7 +207,6 @@ namespace TradingConsole.Wpf.ViewModels
                 var instrumentToUpdate = Dashboard.MonitoredInstruments.FirstOrDefault(i => i.SecurityId == result.SecurityId);
                 if (instrumentToUpdate != null)
                 {
-                    // --- FIX: Use the 1-minute EMA signal for the dashboard's simple signal display ---
                     instrumentToUpdate.TradingSignal = result.EmaSignal1Min;
                 }
 

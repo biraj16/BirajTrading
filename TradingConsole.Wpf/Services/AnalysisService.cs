@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using TradingConsole.Core.Models;
+using TradingConsole.Wpf.ViewModels; // Required for SettingsViewModel
 
 namespace TradingConsole.Wpf.Services
 {
@@ -29,9 +30,16 @@ namespace TradingConsole.Wpf.Services
         public decimal CurrentLongEma { get; set; }
     }
 
-    /// <summary>
-    /// --- MODIFIED: Replaced TradingSignal with specific price action properties ---
-    /// </summary>
+    // --- NEW: Internal state for tracking custom level breakouts/breakdowns ---
+    internal enum PriceZone { Inside, Above, Below }
+    internal class CustomLevelState
+    {
+        public int BreakoutCount { get; set; }
+        public int BreakdownCount { get; set; }
+        public PriceZone LastZone { get; set; } = PriceZone.Inside;
+    }
+
+
     public class AnalysisResult : ObservableModel
     {
         private string _securityId = string.Empty;
@@ -49,12 +57,12 @@ namespace TradingConsole.Wpf.Services
         private string _emaSignal1Min = "N/A";
         private string _emaSignal5Min = "N/A";
         private string _emaSignal15Min = "N/A";
-
-        // --- NEW: Specific Price Action Signal Properties ---
         private string _priceVsVwapSignal = "Neutral";
         private string _priceVsCloseSignal = "Neutral";
         private string _dayRangeSignal = "Neutral";
         private string _openDriveSignal = "Neutral";
+        private string _customLevelSignal = "N/A";
+        public string CustomLevelSignal { get => _customLevelSignal; set { if (_customLevelSignal != value) { _customLevelSignal = value; OnPropertyChanged(); } } }
 
         public string SecurityId { get => _securityId; set { _securityId = value; OnPropertyChanged(); } }
         public string Symbol { get => _symbol; set { _symbol = value; OnPropertyChanged(); } }
@@ -71,13 +79,10 @@ namespace TradingConsole.Wpf.Services
         public string EmaSignal1Min { get => _emaSignal1Min; set { if (_emaSignal1Min != value) { _emaSignal1Min = value; OnPropertyChanged(); } } }
         public string EmaSignal5Min { get => _emaSignal5Min; set { if (_emaSignal5Min != value) { _emaSignal5Min = value; OnPropertyChanged(); } } }
         public string EmaSignal15Min { get => _emaSignal15Min; set { if (_emaSignal15Min != value) { _emaSignal15Min = value; OnPropertyChanged(); } } }
-
-        // --- NEW: Public accessors for the new price action signals ---
         public string PriceVsVwapSignal { get => _priceVsVwapSignal; set { if (_priceVsVwapSignal != value) { _priceVsVwapSignal = value; OnPropertyChanged(); } } }
         public string PriceVsCloseSignal { get => _priceVsCloseSignal; set { if (_priceVsCloseSignal != value) { _priceVsCloseSignal = value; OnPropertyChanged(); } } }
         public string DayRangeSignal { get => _dayRangeSignal; set { if (_dayRangeSignal != value) { _dayRangeSignal = value; OnPropertyChanged(); } } }
         public string OpenDriveSignal { get => _openDriveSignal; set { if (_openDriveSignal != value) { _openDriveSignal = value; OnPropertyChanged(); } } }
-
 
         public string FullGroupIdentifier
         {
@@ -105,6 +110,10 @@ namespace TradingConsole.Wpf.Services
     public class AnalysisService : INotifyPropertyChanged
     {
         #region Parameters and State
+        private readonly SettingsViewModel _settingsViewModel;
+        // --- NEW: Dictionary to hold the state for each index's custom level analysis ---
+        private readonly Dictionary<string, CustomLevelState> _customLevelStates = new();
+
         public int ShortEmaLength { get; set; } = 9;
         public int LongEmaLength { get; set; } = 21;
         private readonly int _ivHistoryLength = 15;
@@ -125,6 +134,11 @@ namespace TradingConsole.Wpf.Services
         public event Action<AnalysisResult>? OnAnalysisUpdated;
         #endregion
 
+        public AnalysisService(SettingsViewModel settingsViewModel)
+        {
+            _settingsViewModel = settingsViewModel;
+        }
+
         public void OnInstrumentDataReceived(DashboardInstrument instrument)
         {
             if (!_tickAnalysisState.ContainsKey(instrument.SecurityId))
@@ -132,6 +146,11 @@ namespace TradingConsole.Wpf.Services
                 _tickAnalysisState[instrument.SecurityId] = (0, 0, new List<decimal>());
                 _multiTimeframeCandles[instrument.SecurityId] = new Dictionary<TimeSpan, List<Candle>>();
                 _multiTimeframeAnalysisState[instrument.SecurityId] = new Dictionary<TimeSpan, TimeframeAnalysisState>();
+                // --- NEW: Initialize state for custom levels when a new index is seen ---
+                if (instrument.SegmentId == 0)
+                {
+                    _customLevelStates[instrument.Symbol] = new CustomLevelState();
+                }
             }
 
             foreach (var timeframe in _timeframes)
@@ -183,9 +202,6 @@ namespace TradingConsole.Wpf.Services
             }
         }
 
-        /// <summary>
-        /// --- MODIFIED: Now calculates individual price action signals. ---
-        /// </summary>
         private void RunComplexAnalysis(DashboardInstrument instrument)
         {
             var tickState = _tickAnalysisState[instrument.SecurityId];
@@ -221,8 +237,9 @@ namespace TradingConsole.Wpf.Services
                 oiSignal = CalculateOiSignal(oneMinCandles);
             }
 
-            // --- NEW: Calculate all price action signals ---
             var paSignals = CalculatePriceActionSignals(instrument, vwap);
+
+            string customLevelSignal = CalculateCustomLevelSignal(instrument);
 
             var finalResult = new AnalysisResult
             {
@@ -236,13 +253,12 @@ namespace TradingConsole.Wpf.Services
                 AvgVolume = avgCandleVolume,
                 VolumeSignal = volumeSignal,
                 OiSignal = oiSignal,
+                CustomLevelSignal = customLevelSignal,
                 EmaSignal1Min = mtaSignals.GetValueOrDefault(TimeSpan.FromMinutes(1), "N/A"),
                 EmaSignal5Min = mtaSignals.GetValueOrDefault(TimeSpan.FromMinutes(5), "N/A"),
                 EmaSignal15Min = mtaSignals.GetValueOrDefault(TimeSpan.FromMinutes(15), "N/A"),
                 InstrumentGroup = GetInstrumentGroup(instrument),
                 UnderlyingGroup = instrument.UnderlyingSymbol,
-
-                // --- NEW: Populate the individual price action signals ---
                 PriceVsVwapSignal = paSignals.priceVsVwap,
                 PriceVsCloseSignal = paSignals.priceVsClose,
                 DayRangeSignal = paSignals.dayRange,
@@ -336,12 +352,8 @@ namespace TradingConsole.Wpf.Services
             return "Neutral";
         }
 
-        /// <summary>
-        /// --- NEW: Calculates multiple price action signals based on live data. ---
-        /// </summary>
         private (string priceVsVwap, string priceVsClose, string dayRange, string openDrive) CalculatePriceActionSignals(DashboardInstrument instrument, decimal vwap)
         {
-            // 1. Price vs VWAP
             string priceVsVwap = "Neutral";
             if (vwap > 0)
             {
@@ -349,7 +361,6 @@ namespace TradingConsole.Wpf.Services
                 else if (instrument.LTP < vwap) priceVsVwap = "Below VWAP";
             }
 
-            // 2. Price vs Previous Close
             string priceVsClose = "Neutral";
             if (instrument.Close > 0)
             {
@@ -357,7 +368,6 @@ namespace TradingConsole.Wpf.Services
                 else if (instrument.LTP < instrument.Close) priceVsClose = "Below Close";
             }
 
-            // 3. Day's Range
             string dayRange = "Neutral";
             decimal range = instrument.High - instrument.Low;
             if (range > 0)
@@ -368,7 +378,6 @@ namespace TradingConsole.Wpf.Services
                 else dayRange = "Mid-Range";
             }
 
-            // 4. Open Drive
             string openDrive = "No";
             if (instrument.Open > 0 && instrument.Low > 0 && instrument.High > 0)
             {
@@ -379,6 +388,80 @@ namespace TradingConsole.Wpf.Services
             return (priceVsVwap, priceVsClose, dayRange, openDrive);
         }
 
+        /// <summary>
+        /// --- MODIFIED: Implements stateful breakout/breakdown logic. ---
+        /// </summary>
+        private string CalculateCustomLevelSignal(DashboardInstrument instrument)
+        {
+            if (instrument.SegmentId != 0) return "N/A";
+
+            var levels = _settingsViewModel.GetLevelsForIndex(instrument.Symbol);
+            if (levels == null) return "No Levels Set";
+
+            // Ensure state exists for the current index
+            if (!_customLevelStates.ContainsKey(instrument.Symbol))
+            {
+                _customLevelStates[instrument.Symbol] = new CustomLevelState();
+            }
+            var state = _customLevelStates[instrument.Symbol];
+
+            decimal ltp = instrument.LTP;
+            PriceZone currentZone;
+
+            // 1. Determine the current price zone
+            if (ltp > levels.NoTradeUpperBand) currentZone = PriceZone.Above;
+            else if (ltp < levels.NoTradeLowerBand) currentZone = PriceZone.Below;
+            else currentZone = PriceZone.Inside;
+
+            // 2. Check for state transitions
+            if (currentZone != state.LastZone)
+            {
+                // Transitioning from Inside to Above -> Breakout
+                if (state.LastZone == PriceZone.Inside && currentZone == PriceZone.Above)
+                {
+                    state.BreakoutCount++;
+                }
+                // Transitioning from Inside to Below -> Breakdown
+                else if (state.LastZone == PriceZone.Inside && currentZone == PriceZone.Below)
+                {
+                    state.BreakdownCount++;
+                }
+                // Update the last known zone
+                state.LastZone = currentZone;
+            }
+
+            // 3. Generate the signal string based on the current zone and counts
+            switch (currentZone)
+            {
+                case PriceZone.Inside:
+                    return "No trade zone";
+                case PriceZone.Above:
+                    return $"{GetOrdinal(state.BreakoutCount)} Breakout";
+                case PriceZone.Below:
+                    return $"{GetOrdinal(state.BreakdownCount)} Breakdown";
+                default:
+                    return "N/A";
+            }
+        }
+
+        private string GetOrdinal(int num)
+        {
+            if (num <= 0) return num.ToString();
+            switch (num % 100)
+            {
+                case 11:
+                case 12:
+                case 13:
+                    return num + "th";
+            }
+            switch (num % 10)
+            {
+                case 1: return num + "st";
+                case 2: return num + "nd";
+                case 3: return num + "rd";
+                default: return num + "th";
+            }
+        }
 
         private string GetInstrumentGroup(DashboardInstrument instrument)
         {
