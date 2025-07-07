@@ -1,4 +1,4 @@
-﻿// TradingConsole.Wpf/ViewModels/MainViewModel.cs
+﻿// In TradingConsole.Wpf/ViewModels/MainViewModel.cs
 
 using System;
 using System.Collections.Generic;
@@ -54,35 +54,11 @@ namespace TradingConsole.Wpf.ViewModels
 
         #region Public Properties
         public DashboardViewModel Dashboard { get; }
+        public PortfolioViewModel Portfolio { get; }
         public AnalysisService AnalysisService => _analysisService;
         public SettingsViewModel Settings { get; }
         public AnalysisTabViewModel AnalysisTab { get; }
 
-        public decimal OpenPnl => OpenPositions.Sum(p => p.UnrealizedPnl);
-        public decimal BookedPnl => ClosedPositions.Sum(p => p.RealizedPnl);
-        public decimal NetPnl => OpenPnl + BookedPnl;
-
-        private bool? _selectAllOpenPositions = false;
-        public bool? SelectAllOpenPositions
-        {
-            get => _selectAllOpenPositions;
-            set
-            {
-                if (_selectAllOpenPositions != value)
-                {
-                    _selectAllOpenPositions = value;
-                    foreach (var pos in OpenPositions)
-                    {
-                        pos.IsSelected = _selectAllOpenPositions ?? false;
-                    }
-                    OnPropertyChanged(nameof(SelectAllOpenPositions));
-                }
-            }
-        }
-
-        public ObservableCollection<Position> OpenPositions { get; }
-        public ObservableCollection<Position> ClosedPositions { get; }
-        public FundDetails FundDetails { get; }
         public ObservableCollection<OptionChainRow> OptionChainRows { get; }
         public ObservableCollection<TickerIndex> Indices { get; }
         public ObservableCollection<string> ExpiryDates { get; }
@@ -184,7 +160,7 @@ namespace TradingConsole.Wpf.ViewModels
             _analysisService.OnAnalysisUpdated += OnAnalysisResultUpdated;
 
             Dashboard = new DashboardViewModel();
-            // Pass the AnalysisService instance to AnalysisTabViewModel
+            Portfolio = new PortfolioViewModel();
             AnalysisTab = new AnalysisTabViewModel();
 
             _webSocketClient.OnConnected += OnWebSocketConnected;
@@ -194,19 +170,13 @@ namespace TradingConsole.Wpf.ViewModels
             _webSocketClient.OnOiUpdate += OnOiUpdateReceived;
             _webSocketClient.OnOrderUpdate += OnOrderUpdateReceived;
 
-            OpenPositions = new ObservableCollection<Position>();
-            ClosedPositions = new ObservableCollection<Position>();
-            ClosedPositions.CollectionChanged += (s, e) => { OnPropertyChanged(nameof(BookedPnl)); OnPropertyChanged(nameof(NetPnl)); };
-
-            FundDetails = new FundDetails();
             OptionChainRows = new ObservableCollection<OptionChainRow>();
             ExpiryDates = new ObservableCollection<string>();
             Orders = new ObservableCollection<OrderBookEntry>();
-
             Indices = new ObservableCollection<TickerIndex>();
 
             BuyCallCommand = new RelayCommand(ExecuteBuyCall);
-            SellCallCommand = new RelayCommand(ExecuteSellCall); // Corrected method name
+            SellCallCommand = new RelayCommand(ExecuteSellCall);
             BuyPutCommand = new RelayCommand(ExecuteBuyPut);
             SellPutCommand = new RelayCommand(ExecuteSellPut);
             RefreshOrdersCommand = new RelayCommand(async (p) => await LoadOrdersAsync());
@@ -311,7 +281,7 @@ namespace TradingConsole.Wpf.ViewModels
         }
 
         private void ExecuteBuyCall(object? p) => OpenOrderWindowForOption(p as OptionChainRow, true, true);
-        private void ExecuteSellCall(object? p) => OpenOrderWindowForOption(p as OptionChainRow, false, true); // Corrected method name
+        private void ExecuteSellCall(object? p) => OpenOrderWindowForOption(p as OptionChainRow, false, true);
         private void ExecuteBuyPut(object? p) => OpenOrderWindowForOption(p as OptionChainRow, true, false);
         private void ExecuteSellPut(object? p) => OpenOrderWindowForOption(p as OptionChainRow, false, false);
         private void ExecuteAddPosition(object? p) { if (p is Position pos) OpenOrderWindowForPosition(pos, pos.Quantity > 0); }
@@ -319,7 +289,7 @@ namespace TradingConsole.Wpf.ViewModels
 
         private async Task ExecuteCloseSelectedPositionsAsync()
         {
-            var selectedPositions = OpenPositions.Where(pos => pos.IsSelected).ToList();
+            var selectedPositions = Portfolio.OpenPositions.Where(pos => pos.IsSelected).ToList();
             if (!selectedPositions.Any()) { MessageBox.Show("No positions selected.", "Information", MessageBoxButton.OK, MessageBoxImage.Information); return; }
             if (MessageBox.Show($"Are you sure you want to close {selectedPositions.Count} selected position(s) at market price?", "Confirm Close Positions", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.No) return;
 
@@ -777,10 +747,9 @@ namespace TradingConsole.Wpf.ViewModels
                 }
                 Dashboard.UpdateLtp(packet);
 
-                // FIX: Added null check for packet.SecurityId
                 if (!string.IsNullOrEmpty(packet.SecurityId))
                 {
-                    var openPositionToUpdate = OpenPositions.FirstOrDefault(p => p.SecurityId == packet.SecurityId);
+                    var openPositionToUpdate = Portfolio.OpenPositions.FirstOrDefault(p => p.SecurityId == packet.SecurityId);
                     if (openPositionToUpdate != null)
                     {
                         openPositionToUpdate.LastTradedPrice = packet.LastPrice;
@@ -833,7 +802,6 @@ namespace TradingConsole.Wpf.ViewModels
         {
             Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                // FIX: Added null check for packet.SecurityId
                 if (string.IsNullOrEmpty(packet.SecurityId)) return;
 
                 var instrumentToUpdate = Dashboard.MonitoredInstruments.FirstOrDefault(i => i.SecurityId == packet.SecurityId);
@@ -878,7 +846,7 @@ namespace TradingConsole.Wpf.ViewModels
                     Task.Run(() => LoadDashboardOptionsForIndexAsync(indexInstrument, packet.LastPrice));
                 }
 
-                var openPositionToUpdate = OpenPositions.FirstOrDefault(p => p.SecurityId == packet.SecurityId);
+                var openPositionToUpdate = Portfolio.OpenPositions.FirstOrDefault(p => p.SecurityId == packet.SecurityId);
                 if (openPositionToUpdate != null)
                 {
                     openPositionToUpdate.LastTradedPrice = packet.LastPrice;
@@ -890,7 +858,6 @@ namespace TradingConsole.Wpf.ViewModels
         {
             Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                // FIX: Added null check for packet.SecurityId
                 if (!string.IsNullOrEmpty(packet.SecurityId))
                 {
                     if (_optionScripMap.TryGetValue(packet.SecurityId, out var optionDetails))
@@ -915,71 +882,31 @@ namespace TradingConsole.Wpf.ViewModels
 
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    var selectedIds = new HashSet<string>(OpenPositions.Where(p => p.IsSelected).Select(p => p.SecurityId));
-
-                    foreach (var position in OpenPositions)
-                    {
-                        position.PropertyChanged -= Position_PropertyChanged;
-                    }
-
-                    OpenPositions.Clear();
-                    ClosedPositions.Clear();
-
-                    if (positionsFromApi != null)
-                    {
-                        foreach (var posData in positionsFromApi)
-                        {
-                            var uiPosition = new Position
-                            {
-                                SecurityId = posData.SecurityId ?? string.Empty,
-                                Ticker = posData.TradingSymbol ?? string.Empty,
-                                Quantity = posData.NetQuantity,
-                                AveragePrice = posData.BuyAverage,
-                                LastTradedPrice = posData.LastTradedPrice,
-                                RealizedPnl = posData.RealizedProfit,
-                                ProductType = posData.ProductType ?? string.Empty,
-                                SellAverage = posData.SellAverage,
-                                BuyQuantity = posData.BuyQuantity,
-                                SellQuantity = posData.SellQuantity
-                            };
-
-                            if (posData.NetQuantity != 0)
-                            {
-                                uiPosition.IsSelected = selectedIds.Contains(uiPosition.SecurityId);
-                                OpenPositions.Add(uiPosition);
-                                uiPosition.PropertyChanged += Position_PropertyChanged;
-
-                                if (!Dashboard.MonitoredInstruments.Any(i => i.SecurityId == uiPosition.SecurityId))
-                                {
-                                    var scripInfo = _scripMasterService.FindBySecurityId(uiPosition.SecurityId);
-                                    if (scripInfo != null)
-                                    {
-                                        int segmentId = _scripMasterService.GetSegmentIdFromName(scripInfo.Segment);
-                                        if (segmentId != -1)
-                                        {
-                                            securityIdsToSubscribe[uiPosition.SecurityId] = segmentId;
-                                        }
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                ClosedPositions.Add(uiPosition);
-                            }
-                        }
-                    }
+                    Portfolio.UpdatePositions(positionsFromApi);
 
                     if (fundLimitFromApi != null)
                     {
-                        FundDetails.AvailableBalance = fundLimitFromApi.AvailableBalance;
-                        FundDetails.UtilizedMargin = fundLimitFromApi.UtilizedAmount;
-                        FundDetails.Collateral = fundLimitFromApi.CollateralAmount;
-                        FundDetails.WithdrawableBalance = fundLimitFromApi.WithdrawableBalance;
+                        Portfolio.FundDetails.AvailableBalance = fundLimitFromApi.AvailableBalance;
+                        Portfolio.FundDetails.UtilizedMargin = fundLimitFromApi.UtilizedAmount;
+                        Portfolio.FundDetails.Collateral = fundLimitFromApi.CollateralAmount;
+                        Portfolio.FundDetails.WithdrawableBalance = fundLimitFromApi.WithdrawableBalance;
                     }
 
-                    OnPropertyChanged(nameof(BookedPnl));
-                    OnPropertyChanged(nameof(OpenPnl));
-                    OnPropertyChanged(nameof(NetPnl));
+                    foreach (var position in Portfolio.OpenPositions)
+                    {
+                        if (!Dashboard.MonitoredInstruments.Any(i => i.SecurityId == position.SecurityId))
+                        {
+                            var scripInfo = _scripMasterService.FindBySecurityId(position.SecurityId);
+                            if (scripInfo != null)
+                            {
+                                int segmentId = _scripMasterService.GetSegmentIdFromName(scripInfo.Segment);
+                                if (segmentId != -1)
+                                {
+                                    securityIdsToSubscribe[position.SecurityId] = segmentId;
+                                }
+                            }
+                        }
+                    }
                 });
 
                 if (securityIdsToSubscribe.Any())
@@ -1226,7 +1153,7 @@ namespace TradingConsole.Wpf.ViewModels
                         {
                             Symbol = peInfo.SemInstrumentName,
                             DisplayName = peInfo.SemInstrumentName,
-                            SecurityId = peInfo.SecurityId,
+                            SecurityId = ceInfo.SecurityId,
                             FeedType = FeedTypeQuote,
                             SegmentId = optionSegmentId,
                             UnderlyingSymbol = indexInstrument.Symbol
@@ -1509,17 +1436,6 @@ namespace TradingConsole.Wpf.ViewModels
         #endregion
 
         #region Boilerplate
-        private void Position_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(Position.UnrealizedPnl))
-            {
-                Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    OnPropertyChanged(nameof(OpenPnl));
-                    OnPropertyChanged(nameof(NetPnl));
-                });
-            }
-        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -1533,10 +1449,7 @@ namespace TradingConsole.Wpf.ViewModels
             _ivRefreshTimer?.Dispose();
             _optionChainLoadSemaphore?.Dispose();
             _ivCacheSemaphore?.Dispose();
-            foreach (var position in OpenPositions)
-            {
-                position.PropertyChanged -= Position_PropertyChanged;
-            }
+
             Settings.SettingsSaved -= Settings_SettingsSaved;
         }
         #endregion

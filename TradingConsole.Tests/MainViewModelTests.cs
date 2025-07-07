@@ -21,16 +21,16 @@ namespace TradingConsole.Tests
             // To test the calculated UnrealizedPnl, we now set the properties
             // that are used in its calculation.
 
-            // Scenario 1: A winning open position with UnrealizedPnl of +150
-            viewModel.OpenPositions.Add(new Position
+            // MODIFIED: Access OpenPositions through the new Portfolio property
+            viewModel.Portfolio.OpenPositions.Add(new Position
             {
                 Quantity = 10,
                 AveragePrice = 100,
                 LastTradedPrice = 115 // PnL = 10 * (115 - 100) = 150
             });
 
-            // Scenario 2: A losing open position with UnrealizedPnl of -50
-            viewModel.OpenPositions.Add(new Position
+            // MODIFIED: Access OpenPositions through the new Portfolio property
+            viewModel.Portfolio.OpenPositions.Add(new Position
             {
                 Quantity = 5,
                 AveragePrice = 200,
@@ -38,16 +38,17 @@ namespace TradingConsole.Tests
             });
 
 
-            // The setup for closed positions was correct, as RealizedPnl is a settable property.
-            viewModel.ClosedPositions.Add(new Position { RealizedPnl = 200m });
-            viewModel.ClosedPositions.Add(new Position { RealizedPnl = -75m });
+            // MODIFIED: Access ClosedPositions through the new Portfolio property
+            viewModel.Portfolio.ClosedPositions.Add(new Position { RealizedPnl = 200m });
+            viewModel.Portfolio.ClosedPositions.Add(new Position { RealizedPnl = -75m });
 
 
             // --- ACT ---
             // The "Act" is simply reading the values of the calculated properties in the ViewModel.
-            decimal openPnl = viewModel.OpenPnl;
-            decimal bookedPnl = viewModel.BookedPnl;
-            decimal netPnl = viewModel.NetPnl;
+            // MODIFIED: Access PnL properties through the new Portfolio property
+            decimal openPnl = viewModel.Portfolio.OpenPnl;
+            decimal bookedPnl = viewModel.Portfolio.BookedPnl;
+            decimal netPnl = viewModel.Portfolio.NetPnl;
 
 
             // --- ASSERT ---

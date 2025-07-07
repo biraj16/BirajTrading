@@ -9,7 +9,8 @@
         xmlns:views="clr-namespace:TradingConsole.Wpf.Views"
         mc:Ignorable="d"
         Title="Dhan Trading Console" Height="800" Width="1800"
-        FontSize="12" WindowState="Maximized">
+        FontSize="13" WindowState="Maximized"
+        Background="#F5F7FA">
     <Window.Resources>
         <!-- Converters -->
         <converters:ValueToBrushConverter x:Key="ValueToBrushConverter"/>
@@ -18,86 +19,138 @@
         <converters:AbsoluteValueConverter x:Key="AbsoluteValueConverter"/>
         <converters:ValueToSignConverter x:Key="ValueToSignConverter"/>
 
-        <!-- Styles -->
-        <Style x:Key="OptionChainRowStyle" TargetType="DataGridRow">
-            <Setter Property="Background" Value="White"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsAtm}" Value="True">
-                    <Setter Property="Background" Value="#EFF2F7"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#f8f9fa"/>
+        <!-- Base Styles -->
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="Padding" Value="5"/>
-            <Setter Property="BorderThickness" Value="0,0,1,0"/>
-            <Setter Property="BorderBrush" Value="#e9ecef"/>
-        </Style>
-
-        <Style x:Key="OptionCellBaseStyle" TargetType="DataGridCell">
-            <Setter Property="Focusable" Value="False"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="5,3"/>
-            <Setter Property="TextBlock.TextAlignment" Value="Center"/>
-        </Style>
-
-        <Style x:Key="CallCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource OptionCellBaseStyle}">
+            <Setter Property="Background" Value="#E9ECEF"/>
+            <Setter Property="BorderBrush" Value="#DEE2E6"/>
             <Style.Triggers>
-                <DataTrigger Binding="{Binding CallState}" Value="ITM">
-                    <Setter Property="Background" Value="#F5FDFF"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="PutCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource OptionCellBaseStyle}">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding PutState}" Value="ITM">
-                    <Setter Property="Background" Value="#FFFBF5"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="StrikePriceCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource OptionCellBaseStyle}">
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Background" Value="#f8f9fa"/>
-            <Setter Property="Foreground" Value="#212529"/>
-        </Style>
-
-        <Style x:Key="PnlTextStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{Binding Path=Text, RelativeSource={RelativeSource Self}, Converter={StaticResource ValueToBrushConverter}}"/>
-        </Style>
-
-        <Style x:Key="PositionsDataGridCellStyle" TargetType="DataGridCell">
-            <Setter Property="TextBlock.TextAlignment" Value="Center"/>
-            <Setter Property="Padding" Value="5,3"/>
-            <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#D6EAF8"/>
-                    <Setter Property="Foreground" Value="Black"/>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#DEE2E6"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="ProfitLossCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource PositionsDataGridCellStyle}">
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#007BFF"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#0069D9"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#0069D9"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#DC3545"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#C82333"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#C82333"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Foreground" Value="#007BFF"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="False">
+                    <Setter Property="Foreground" Value="#495057"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#DEE2E6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#E9ECEF"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="AlternatingRowBackground" Value="#F8F9FA"/>
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F8F9FA"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="BorderBrush" Value="#DEE2E6"/>
+        </Style>
+
+        <Style TargetType="DataGridCell">
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Specific Styles -->
+        <Style x:Key="PnlTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{Binding Path=Text, RelativeSource={RelativeSource Self}, Converter={StaticResource ValueToBrushConverter}}"/>
+        </Style>
+
+        <Style x:Key="ProfitLossCellStyle" TargetType="DataGridCell">
             <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource Self}, Path=Content.Text, Converter={StaticResource ValueToBrushConverter}}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
 
-        <Style x:Key="DataGridButtonStyle" TargetType="Button">
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Padding" Value="8,2"/>
-            <Setter Property="Margin" Value="2"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="#EAEAEA"/>
-            <Setter Property="BorderBrush" Value="#BDBDBD"/>
+        <Style x:Key="OptionChainRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="White"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsAtm}" Value="True">
+                    <Setter Property="Background" Value="#FFFBEA"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
+        <Style x:Key="CallCellStyle" TargetType="DataGridCell">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding CallState}" Value="ITM">
+                    <Setter Property="Background" Value="#E6F4EA"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PutCellStyle" TargetType="DataGridCell">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding PutState}" Value="ITM">
+                    <Setter Property="Background" Value="#FFF0F1"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="StrikePriceCellStyle" TargetType="DataGridCell">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Background" Value="#E9ECEF"/>
+            <Setter Property="Foreground" Value="#212529"/>
+        </Style>
     </Window.Resources>
 
-    <Grid Margin="10">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
@@ -105,93 +158,96 @@
 
         <TabControl Grid.Row="0">
             <!-- Positions Tab -->
-            <TabItem Header="Positions">
+            <TabItem Header="Portfolio">
                 <DockPanel>
-                    <Border DockPanel.Dock="Top" Padding="15" BorderBrush="#e9ecef" BorderThickness="0,0,0,1" Background="#F8F9FA">
-                        <StackPanel Orientation="Horizontal">
+                    <!-- Portfolio Summary Header -->
+                    <Border DockPanel.Dock="Top" Padding="15" BorderBrush="#DEE2E6" BorderThickness="0,0,0,1" Background="White">
+                        <StackPanel Orientation="Horizontal" DataContext="{Binding Portfolio}">
                             <TextBlock Text="Booked P&amp;L:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,5,0"/>
-                            <TextBlock Text="{Binding BookedPnl, StringFormat=N2}" VerticalAlignment="Center" FontWeight="Bold" FontSize="14" Style="{StaticResource PnlTextStyle}"/>
+                            <TextBlock Text="{Binding Path=BookedPnl, StringFormat='₹#,##0.00'}" VerticalAlignment="Center" FontWeight="Bold" FontSize="14" Style="{StaticResource PnlTextStyle}"/>
                             <TextBlock Text="Open P&amp;L (MTM):" VerticalAlignment="Center" FontWeight="SemiBold" Margin="25,0,5,0"/>
-                            <TextBlock Text="{Binding OpenPnl, StringFormat=N2}" VerticalAlignment="Center" FontWeight="Bold" FontSize="14" Style="{StaticResource PnlTextStyle}"/>
+                            <TextBlock Text="{Binding Path=OpenPnl, StringFormat='₹#,##0.00'}" VerticalAlignment="Center" FontWeight="Bold" FontSize="14" Style="{StaticResource PnlTextStyle}"/>
                             <TextBlock Text="Net P&amp;L:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="25,0,5,0"/>
-                            <TextBlock Text="{Binding NetPnl, StringFormat=N2}" VerticalAlignment="Center" FontWeight="Bold" FontSize="14" Style="{StaticResource PnlTextStyle}"/>
-                            <Button Content="Refresh" Command="{Binding RefreshPortfolioCommand}" HorizontalAlignment="Left" Margin="30,0,0,0" Padding="10,3"/>
+                            <TextBlock Text="{Binding Path=NetPnl, StringFormat='₹#,##0.00'}" VerticalAlignment="Center" FontWeight="Bold" FontSize="14" Style="{StaticResource PnlTextStyle}"/>
+                            <Button Content="Refresh" Command="{Binding DataContext.RefreshPortfolioCommand, RelativeSource={RelativeSource AncestorType=TabItem}}" HorizontalAlignment="Left" Margin="30,0,0,0"/>
                         </StackPanel>
                     </Border>
-                    <Grid>
+
+                    <!-- Main Content Area for Positions -->
+                    <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" MinHeight="150" MaxHeight="300" />
+                            <RowDefinition Height="0.8*" />
                         </Grid.RowDefinitions>
-                        <Grid Grid.Row="0">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="Open Positions" FontWeight="Bold" FontSize="16" Margin="5"/>
-                            <DataGrid Grid.Row="1" ItemsSource="{Binding OpenPositions}" CanUserAddRows="False" AutoGenerateColumns="False" IsReadOnly="True" VerticalScrollBarVisibility="Auto" GridLinesVisibility="Horizontal">
+
+                        <!-- Open Positions -->
+                        <GroupBox Grid.Row="0" Header="Open Positions" FontWeight="Bold" FontSize="14" Padding="5">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <DataGrid ItemsSource="{Binding Portfolio.OpenPositions}" VerticalScrollBarVisibility="Auto">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn MinWidth="30">
+                                            <DataGridTemplateColumn.Header>
+                                                <CheckBox IsChecked="{Binding DataContext.Portfolio.SelectAllOpenPositions, RelativeSource={RelativeSource AncestorType=DataGrid}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Instrument" Binding="{Binding Ticker}" Width="2.5*" />
+                                        <DataGridTextColumn Header="Product" Binding="{Binding ProductType}" Width="*" />
+                                        <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="0.7*" />
+                                        <DataGridTextColumn Header="Avg. Price" Binding="{Binding AveragePrice, StringFormat='N2'}" Width="*" />
+                                        <DataGridTextColumn Header="LTP" Binding="{Binding LastTradedPrice, StringFormat='N2'}" Width="*" />
+                                        <DataGridTextColumn Header="P&amp;L" Binding="{Binding UnrealizedPnl, StringFormat='N2'}" CellStyle="{StaticResource ProfitLossCellStyle}" Width="*"/>
+                                        <DataGridTemplateColumn Header="Actions" Width="Auto">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Button Content="Add" ToolTip="Add to this position" Command="{Binding DataContext.AddPositionCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
+                                                        <Button Content="Exit" ToolTip="Exit this position" Style="{StaticResource DangerButton}" Command="{Binding DataContext.ExitPositionCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
+                                                        <Button Content="C" ToolTip="Convert Position Type" Width="30" Command="{Binding DataContext.ConvertPositionCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <Button Grid.Row="1" Content="Close Selected Positions" Command="{Binding CloseSelectedPositionsCommand}" HorizontalAlignment="Left" Style="{StaticResource DangerButton}"/>
+                            </Grid>
+                        </GroupBox>
+
+                        <GridSplitter Grid.Row="1" Height="8" HorizontalAlignment="Stretch" Background="Transparent" ResizeDirection="Rows"/>
+
+                        <!-- Closed Positions -->
+                        <GroupBox Grid.Row="2" Header="Closed Positions" FontWeight="Bold" FontSize="14" Padding="5">
+                            <DataGrid ItemsSource="{Binding Portfolio.ClosedPositions}" VerticalScrollBarVisibility="Auto">
                                 <DataGrid.Columns>
-                                    <DataGridTemplateColumn MinWidth="30">
-                                        <DataGridTemplateColumn.Header>
-                                            <CheckBox IsChecked="{Binding DataContext.SelectAllOpenPositions, RelativeSource={RelativeSource AncestorType=DataGrid}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                        </DataGridTemplateColumn.Header>
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="Instrument" Binding="{Binding Ticker}" Width="2.5*" CellStyle="{StaticResource PositionsDataGridCellStyle}"/>
-                                    <DataGridTextColumn Header="Product" Binding="{Binding ProductType}" Width="*" CellStyle="{StaticResource PositionsDataGridCellStyle}"/>
-                                    <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="0.7*" CellStyle="{StaticResource PositionsDataGridCellStyle}"/>
-                                    <DataGridTextColumn Header="Avg. Price" Binding="{Binding AveragePrice, StringFormat='N2'}" Width="*" CellStyle="{StaticResource PositionsDataGridCellStyle}"/>
-                                    <DataGridTextColumn Header="LTP" Binding="{Binding LastTradedPrice, StringFormat='N2'}" Width="*" CellStyle="{StaticResource PositionsDataGridCellStyle}"/>
-                                    <DataGridTextColumn Header="P&amp;L" Binding="{Binding UnrealizedPnl, StringFormat='N2'}" CellStyle="{StaticResource ProfitLossCellStyle}" Width="*"/>
-                                    <DataGridTemplateColumn Header="Actions" Width="Auto">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Button Content="Add" ToolTip="Add to this position" Style="{StaticResource DataGridButtonStyle}" Command="{Binding DataContext.AddPositionCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
-                                                    <Button Content="Exit" ToolTip="Exit this position" Style="{StaticResource DataGridButtonStyle}" Background="#FADBD8" BorderBrush="#E6B0AA" Command="{Binding DataContext.ExitPositionCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
-                                                    <Button Content="C" ToolTip="Convert Position Type" Style="{StaticResource DataGridButtonStyle}" Width="25" Command="{Binding DataContext.ConvertPositionCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"/>
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                            <Button Grid.Row="2" Content="Close Selected Positions" Command="{Binding CloseSelectedPositionsCommand}" HorizontalAlignment="Left" Margin="5" Padding="10,5" Background="#E74C3C" Foreground="White" FontWeight="Bold"/>
-                        </Grid>
-                        <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" Background="LightGray" ResizeDirection="Rows"/>
-                        <Grid Grid.Row="2">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="Closed Positions" FontWeight="Bold" FontSize="16" Margin="5"/>
-                            <DataGrid Grid.Row="1" ItemsSource="{Binding ClosedPositions}" CanUserAddRows="False" AutoGenerateColumns="False" IsReadOnly="True" VerticalScrollBarVisibility="Auto" GridLinesVisibility="Horizontal">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Instrument" Binding="{Binding Ticker}" Width="2.5*" CellStyle="{StaticResource PositionsDataGridCellStyle}"/>
-                                    <DataGridTextColumn Header="Product" Binding="{Binding ProductType}" Width="*" CellStyle="{StaticResource PositionsDataGridCellStyle}"/>
-                                    <DataGridTextColumn Header="Buy Qty" Binding="{Binding BuyQuantity}" Width="0.7*" CellStyle="{StaticResource PositionsDataGridCellStyle}"/>
-                                    <DataGridTextColumn Header="Avg. Buy" Binding="{Binding AveragePrice, StringFormat='N2'}" Width="*" CellStyle="{StaticResource PositionsDataGridCellStyle}"/>
-                                    <DataGridTextColumn Header="Sell Qty" Binding="{Binding SellQuantity}" Width="0.7*" CellStyle="{StaticResource PositionsDataGridCellStyle}"/>
-                                    <DataGridTextColumn Header="Avg. Sell" Binding="{Binding SellAverage, StringFormat='N2'}" Width="*" CellStyle="{StaticResource PositionsDataGridCellStyle}"/>
+                                    <DataGridTextColumn Header="Instrument" Binding="{Binding Ticker}" Width="2.5*" />
+                                    <DataGridTextColumn Header="Product" Binding="{Binding ProductType}" Width="*" />
+                                    <DataGridTextColumn Header="Buy Qty" Binding="{Binding BuyQuantity}" Width="0.7*" />
+                                    <DataGridTextColumn Header="Avg. Buy" Binding="{Binding AveragePrice, StringFormat='N2'}" Width="*" />
+                                    <DataGridTextColumn Header="Sell Qty" Binding="{Binding SellQuantity}" Width="0.7*" />
+                                    <DataGridTextColumn Header="Avg. Sell" Binding="{Binding SellAverage, StringFormat='N2'}" Width="*" />
                                     <DataGridTextColumn Header="Realized P&amp;L" Binding="{Binding RealizedPnl, StringFormat='N2'}" CellStyle="{StaticResource ProfitLossCellStyle}" Width="*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
-                        </Grid>
+                        </GroupBox>
                     </Grid>
                 </DockPanel>
             </TabItem>
 
             <!-- Control Panel Tab -->
             <TabItem Header="Control Panel">
-                <DockPanel Margin="5">
-                    <GroupBox Header="Fund Summary" DockPanel.Dock="Left" VerticalAlignment="Top" Padding="15" Margin="5" MinWidth="350" FontWeight="SemiBold" BorderBrush="#DDDDDD">
-                        <Grid DataContext="{Binding FundDetails}">
+                <StackPanel Orientation="Horizontal" Margin="10" VerticalAlignment="Top">
+                    <GroupBox Header="Fund Summary" Padding="15" Margin="5" MinWidth="350" FontWeight="SemiBold" BorderBrush="#DDDDDD">
+                        <Grid DataContext="{Binding Portfolio.FundDetails}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
@@ -213,7 +269,7 @@
                         </Grid>
                     </GroupBox>
 
-                    <GroupBox Header="Application Settings" DockPanel.Dock="Left" VerticalAlignment="Top" Padding="15" Margin="10,5,5,5" MinWidth="350" FontWeight="SemiBold" BorderBrush="#DDDDDD">
+                    <GroupBox Header="Application Settings" Padding="15" Margin="10,5,5,5" MinWidth="350" FontWeight="SemiBold" BorderBrush="#DDDDDD">
                         <StackPanel DataContext="{Binding Settings}">
                             <TextBlock Text="Freeze Quantities" FontWeight="Bold" FontSize="14" Margin="5,0,5,10"/>
                             <Grid>
@@ -227,7 +283,6 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
-                                    <!-- NEW: Rows for EMA settings -->
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
@@ -245,7 +300,6 @@
                                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Sensex:" VerticalAlignment="Center" Margin="5"/>
                                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SensexFreezeQuantity, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="5" Width="100" HorizontalAlignment="Left"/>
 
-                                <!-- NEW: EMA Lengths -->
                                 <TextBlock Grid.Row="4" Grid.ColumnSpan="2" Text="EMA Lengths" FontWeight="Bold" FontSize="14" Margin="5,15,5,5"/>
                                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Short EMA:" VerticalAlignment="Center" Margin="5"/>
                                 <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ShortEmaLength, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="5" Width="100" HorizontalAlignment="Left"/>
@@ -253,77 +307,54 @@
                                 <TextBlock Grid.Row="6" Grid.Column="0" Text="Long EMA:" VerticalAlignment="Center" Margin="5"/>
                                 <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding LongEmaLength, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="5" Width="100" HorizontalAlignment="Left"/>
 
-                                <Button Grid.Row="7" Grid.Column="1" Command="{Binding SaveSettingsCommand}" Content="Save Settings" Margin="5,15,5,5" Width="100" HorizontalAlignment="Left" Padding="5"/>
+                                <Button Grid.Row="7" Grid.Column="1" Command="{Binding SaveSettingsCommand}" Content="Save Settings" Margin="5,15,5,5" HorizontalAlignment="Left" Style="{StaticResource PrimaryButton}"/>
                             </Grid>
                         </StackPanel>
                     </GroupBox>
-                </DockPanel>
+                </StackPanel>
             </TabItem>
 
             <!-- Option Chain Tab -->
             <TabItem Header="Option Chain">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
-                        <TextBlock Text="Index: " VerticalAlignment="Center"/>
-                        <ComboBox ItemsSource="{Binding Indices}" SelectedItem="{Binding SelectedIndex}" MinWidth="120" Margin="5,0"/>
-                        <TextBlock Text="Expiry Date: " VerticalAlignment="Center" Margin="15,0,0,0"/>
-                        <ComboBox ItemsSource="{Binding ExpiryDates}" SelectedItem="{Binding SelectedExpiry}" MinWidth="150" Margin="5,0"/>
-                        <StackPanel Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding SelectedIndex.Name}" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                            <TextBlock Text="{Binding UnderlyingPrice, StringFormat=N2}" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                            <TextBlock Foreground="{Binding UnderlyingPriceChange, Mode=OneWay, Converter={StaticResource ValueToBrushConverter}}" Margin="10,0,0,0" VerticalAlignment="Center">
-                                <Run Text="{Binding UnderlyingPriceChange, Mode=OneWay, StringFormat=N2}"/>
-                                <Run Text="{Binding UnderlyingPriceChangePercent, Mode=OneWay, StringFormat=' ({0:P2})'}" Foreground="Gray"/>
-                            </TextBlock>
+                    <Border DockPanel.Dock="Top" Padding="10" BorderBrush="#DEE2E6" BorderThickness="0,0,0,1" Background="White">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="Index: " VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <ComboBox ItemsSource="{Binding Indices}" SelectedItem="{Binding SelectedIndex}" MinWidth="120" Margin="5,0"/>
+                            <TextBlock Text="Expiry Date: " VerticalAlignment="Center" FontWeight="SemiBold" Margin="15,0,0,0"/>
+                            <ComboBox ItemsSource="{Binding ExpiryDates}" SelectedItem="{Binding SelectedExpiry}" MinWidth="150" Margin="5,0"/>
+                            <StackPanel Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SelectedIndex.Name}" VerticalAlignment="Center" FontWeight="Bold" FontSize="14"/>
+                                <TextBlock Text="{Binding UnderlyingPrice, StringFormat=N2}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                <TextBlock Foreground="{Binding UnderlyingPriceChange, Mode=OneWay, Converter={StaticResource ValueToBrushConverter}}" Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <Run Text="{Binding UnderlyingPriceChange, Mode=OneWay, StringFormat=N2}"/>
+                                    <Run Text="{Binding UnderlyingPriceChangePercent, Mode=OneWay, StringFormat=' ({0:P2})'}" Foreground="Gray"/>
+                                </TextBlock>
+                            </StackPanel>
                         </StackPanel>
-                    </StackPanel>
-                    <DataGrid ItemsSource="{Binding OptionChainRows}" RowStyle="{StaticResource OptionChainRowStyle}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#e9ecef" VerticalGridLinesBrush="#e9ecef">
+                    </Border>
+                    <DataGrid ItemsSource="{Binding OptionChainRows}" RowStyle="{StaticResource OptionChainRowStyle}" VerticalGridLinesBrush="#DEE2E6">
                         <DataGrid.Columns>
                             <!-- Calls Side (Left) -->
                             <DataGridTemplateColumn Header="OI Profile" Width="130">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Grid>
-                                            <Border HorizontalAlignment="Right" Background="#EEEEEE">
+                                            <Border HorizontalAlignment="Right" Background="#E6F4EA">
                                                 <Border.Width>
                                                     <MultiBinding Converter="{StaticResource OiToWidthConverter}">
                                                         <Binding Path="CallOption.OI"/>
                                                         <Binding Path="DataContext.MaxOi" RelativeSource="{RelativeSource AncestorType=DataGrid}"/>
                                                     </MultiBinding>
                                                 </Border.Width>
-                                                <Border.ToolTip>
-                                                    <TextBlock>
-                                                        <Run Text="Total OI:"/>
-                                                        <Run Text="{Binding CallOption.OI, StringFormat=N0}"/>
-                                                    </TextBlock>
-                                                </Border.ToolTip>
                                             </Border>
-                                            <Border HorizontalAlignment="Right">
-                                                <Border.Style>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="Transparent"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding CallOption.OiChange, Converter={StaticResource ValueToSignConverter}}" Value="Positive">
-                                                                <Setter Property="Background" Value="#A9DFBF"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding CallOption.OiChange, Converter={StaticResource ValueToSignConverter}}" Value="Negative">
-                                                                <Setter Property="Background" Value="#F5B7B1"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Border.Style>
+                                            <Border HorizontalAlignment="Right" Background="#C8E6C9">
                                                 <Border.Width>
                                                     <MultiBinding Converter="{StaticResource OiToWidthConverter}">
                                                         <Binding Path="CallOption.OiChange" Converter="{StaticResource AbsoluteValueConverter}"/>
                                                         <Binding Path="DataContext.MaxOiChange" RelativeSource="{RelativeSource AncestorType=DataGrid}"/>
                                                     </MultiBinding>
                                                 </Border.Width>
-                                                <Border.ToolTip>
-                                                    <TextBlock>
-                                                        <Run Text="OI Change:"/>
-                                                        <Run Text="{Binding CallOption.OiChange, StringFormat=N0}"/>
-                                                    </TextBlock>
-                                                </Border.ToolTip>
                                             </Border>
                                         </Grid>
                                     </DataTemplate>
@@ -353,8 +384,8 @@
                                         <Grid Background="Transparent">
                                             <TextBlock Text="{Binding CallOption.LTP, StringFormat=N2}" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BoolToVis}}">
-                                                <Button Content="B" Width="25" Height="22" Margin="1" Background="#377dff" Foreground="White" Command="{Binding DataContext.BuyCallCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
-                                                <Button Content="S" Width="25" Height="22" Margin="1" Background="#f23645" Foreground="White" Command="{Binding DataContext.SellCallCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                <Button Content="B" Width="25" Height="22" Margin="1" Style="{StaticResource PrimaryButton}" Command="{Binding DataContext.BuyCallCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                <Button Content="S" Width="25" Height="22" Margin="1" Style="{StaticResource DangerButton}" Command="{Binding DataContext.SellCallCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
                                             </StackPanel>
                                         </Grid>
                                     </DataTemplate>
@@ -374,8 +405,8 @@
                                         <Grid Background="Transparent">
                                             <TextBlock Text="{Binding PutOption.LTP, StringFormat=N2}" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource BoolToVis}}">
-                                                <Button Content="B" Width="25" Height="22" Margin="1" Background="#377dff" Foreground="White" Command="{Binding DataContext.BuyPutCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
-                                                <Button Content="S" Width="25" Height="22" Margin="1" Background="#f23645" Foreground="White" Command="{Binding DataContext.SellPutCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                <Button Content="B" Width="25" Height="22" Margin="1" Style="{StaticResource PrimaryButton}" Command="{Binding DataContext.BuyPutCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                <Button Content="S" Width="25" Height="22" Margin="1" Style="{StaticResource DangerButton}" Command="{Binding DataContext.SellPutCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
                                             </StackPanel>
                                         </Grid>
                                     </DataTemplate>
@@ -406,46 +437,21 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Grid>
-                                            <Border HorizontalAlignment="Left" Background="#EEEEEE">
+                                            <Border HorizontalAlignment="Left" Background="#FFF0F1">
                                                 <Border.Width>
                                                     <MultiBinding Converter="{StaticResource OiToWidthConverter}">
                                                         <Binding Path="PutOption.OI"/>
                                                         <Binding Path="DataContext.MaxOi" RelativeSource="{RelativeSource AncestorType=DataGrid}"/>
                                                     </MultiBinding>
                                                 </Border.Width>
-                                                <Border.ToolTip>
-                                                    <TextBlock>
-                                                        <Run Text="Total OI:"/>
-                                                        <Run Text="{Binding PutOption.OI, StringFormat=N0}"/>
-                                                    </TextBlock>
-                                                </Border.ToolTip>
                                             </Border>
-                                            <Border HorizontalAlignment="Left">
-                                                <Border.Style>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="Transparent"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding PutOption.OiChange, Converter={StaticResource ValueToSignConverter}}" Value="Positive">
-                                                                <Setter Property="Background" Value="#A9DFBF"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding PutOption.OiChange, Converter={StaticResource ValueToSignConverter}}" Value="Negative">
-                                                                <Setter Property="Background" Value="#F5B7B1"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Border.Style>
+                                            <Border HorizontalAlignment="Left" Background="#FFCDD2">
                                                 <Border.Width>
                                                     <MultiBinding Converter="{StaticResource OiToWidthConverter}">
                                                         <Binding Path="PutOption.OiChange" Converter="{StaticResource AbsoluteValueConverter}"/>
                                                         <Binding Path="DataContext.MaxOiChange" RelativeSource="{RelativeSource AncestorType=DataGrid}"/>
                                                     </MultiBinding>
                                                 </Border.Width>
-                                                <Border.ToolTip>
-                                                    <TextBlock>
-                                                        <Run Text="OI Change:"/>
-                                                        <Run Text="{Binding PutOption.OiChange, StringFormat=N0}"/>
-                                                    </TextBlock>
-                                                </Border.ToolTip>
                                             </Border>
                                         </Grid>
                                     </DataTemplate>
@@ -459,10 +465,10 @@
             <!-- Orders Tab -->
             <TabItem Header="Orders">
                 <DockPanel>
-                    <Border DockPanel.Dock="Top" Padding="5" BorderBrush="#e9ecef" BorderThickness="0,0,0,1">
-                        <Button Content="Refresh Orders" Command="{Binding RefreshOrdersCommand}" HorizontalAlignment="Left" Padding="10,3"/>
+                    <Border DockPanel.Dock="Top" Padding="10" BorderBrush="#DEE2E6" BorderThickness="0,0,0,1" Background="White">
+                        <Button Content="Refresh Orders" Command="{Binding RefreshOrdersCommand}" HorizontalAlignment="Left"/>
                     </Border>
-                    <DataGrid ItemsSource="{Binding Orders}" IsReadOnly="True" AutoGenerateColumns="False" GridLinesVisibility="All">
+                    <DataGrid ItemsSource="{Binding Orders}" Margin="10">
                         <DataGrid.RowStyle>
                             <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
                                 <Style.Triggers>
@@ -496,10 +502,10 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
                                                     Visibility="{Binding IsPending, Converter={StaticResource BoolToVis}}">
-                                            <Button Content="Modify" Margin="2,0" Padding="5,1" Style="{StaticResource DataGridButtonStyle}"
+                                            <Button Content="Modify" Margin="2,0" Padding="5,1"
                                                     Command="{Binding DataContext.ModifyOrderCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                     CommandParameter="{Binding}"/>
-                                            <Button Content="Cancel" Margin="2,0" Padding="5,1" Background="#F5B7B1" Style="{StaticResource DataGridButtonStyle}"
+                                            <Button Content="Cancel" Margin="2,0" Padding="5,1" Style="{StaticResource DangerButton}"
                                                     Command="{Binding DataContext.CancelOrderCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                     CommandParameter="{Binding}"/>
                                         </StackPanel>
@@ -515,24 +521,16 @@
 
             <!-- Dashboard Tab -->
             <TabItem Header="Dashboard">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5" Background="#f0f0f0">
-                        <Label Content="Add Instrument:" VerticalAlignment="Center" FontWeight="Bold" Margin="5,0"/>
-                        <TextBox Text="{Binding NewInstrumentSymbol, UpdateSourceTrigger=PropertyChanged}" Width="250" VerticalAlignment="Center" Margin="5,0"
-                                 ToolTip="Format: TYPE:SYMBOL (e.g., EQ:RELIANCE, FUT:NIFTY, IDX:Nifty 50)"/>
-                        <Button Content="Add to Dashboard" Command="{Binding AddInstrumentCommand}" Padding="10,2" Margin="5,0" />
-                    </StackPanel>
-
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Dashboard.MonitoredInstruments}" 
-                              IsReadOnly="True" 
-                              AutoGenerateColumns="False" 
-                              GridLinesVisibility="Horizontal"
-                              CanUserAddRows="False">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Padding="10" BorderBrush="#DEE2E6" BorderThickness="0,0,0,1" Background="White">
+                        <StackPanel Orientation="Horizontal">
+                            <Label Content="Add Instrument:" VerticalAlignment="Center" FontWeight="Bold" Margin="5,0"/>
+                            <TextBox Text="{Binding NewInstrumentSymbol, UpdateSourceTrigger=PropertyChanged}" Width="250" VerticalAlignment="Center" Margin="5,0"
+                                     ToolTip="Format: TYPE:SYMBOL (e.g., EQ:RELIANCE, FUT:NIFTY, IDX:Nifty 50)"/>
+                            <Button Content="Add to Dashboard" Command="{Binding AddInstrumentCommand}" Style="{StaticResource PrimaryButton}" />
+                        </StackPanel>
+                    </Border>
+                    <DataGrid ItemsSource="{Binding Dashboard.MonitoredInstruments}" Margin="10">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Symbol" Binding="{Binding DisplayName}" Width="*" FontWeight="SemiBold"/>
                             <DataGridTextColumn Header="LTP" Binding="{Binding LTP, StringFormat=N2}" Width="Auto"/>
@@ -553,7 +551,6 @@
                             <DataGridTextColumn Header="Prev. Close" Binding="{Binding Close, StringFormat=N2}" Width="Auto"/>
                             <DataGridTextColumn Header="Volume" Binding="{Binding Volume, StringFormat=N0}" Width="Auto"/>
                             <DataGridTextColumn Header="OI" Binding="{Binding OpenInterest, StringFormat=N0}" Width="Auto"/>
-                            <!-- ADDED: New column for Implied Volatility -->
                             <DataGridTextColumn Header="IV" Binding="{Binding ImpliedVolatility, StringFormat=N2}" Width="Auto"/>
                             <DataGridTextColumn Header="Signal" Binding="{Binding TradingSignal}" Width="*"/>
                             <DataGridTemplateColumn Header="Actions">
@@ -562,18 +559,16 @@
                                         <Button Content="Remove" 
                                                 Command="{Binding DataContext.RemoveInstrumentCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                 CommandParameter="{Binding}"
-                                                Padding="5,1"
-                                                Background="#C70039"
-                                                Foreground="White"
-                                                BorderThickness="0"
-                                                Cursor="Hand"/>
+                                                Style="{StaticResource DangerButton}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
-                </Grid>
+                </DockPanel>
             </TabItem>
+
+            <!-- Analysis Tab -->
             <TabItem Header="Analysis">
                 <views:AnalysisTabView DataContext="{Binding AnalysisTab}"/>
             </TabItem>

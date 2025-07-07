@@ -15,7 +15,7 @@ namespace TradingConsole.Core.Models
         /// Raises the PropertyChanged event to notify data-bound UI elements of a property change.
         /// </summary>
         /// <param name="propertyName">The name of the property that changed. Automatically populated by CallerMemberName.</param>
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

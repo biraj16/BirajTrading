@@ -1,18 +1,13 @@
-﻿using System.Collections.Generic;
+﻿// In TradingConsole.DhanApi/Models/OptionChainModels.cs
+
+using System.Collections.Generic;
 using System.ComponentModel;
 using Newtonsoft.Json;
+using TradingConsole.Core.Models; // ADDED: Using statement for the correct ObservableModel
 
 namespace TradingConsole.DhanApi.Models
 {
-    // A base class for INotifyPropertyChanged implementation
-    public class ObservableModel : INotifyPropertyChanged
-    {
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-    }
+    // REMOVED: The local definition of ObservableModel is gone from this file.
 
     public class Index
     {
@@ -51,7 +46,7 @@ namespace TradingConsole.DhanApi.Models
         public OptionData? PutOption { get; set; }
     }
 
-    public class OptionData : ObservableModel
+    public class OptionData : ObservableModel // This now correctly inherits from the Core model
     {
         private decimal _lastPrice;
         private int _openInterest;
@@ -59,7 +54,6 @@ namespace TradingConsole.DhanApi.Models
         private Greeks? _greeks;
         private string _securityId = string.Empty;
 
-        // --- CRITICAL FIX: Added JsonProperty attribute to ensure SecurityId is deserialized ---
         [JsonProperty("securityId")]
         public string SecurityId { get => _securityId; set { _securityId = value; OnPropertyChanged(nameof(SecurityId)); } }
 
@@ -138,7 +132,7 @@ namespace TradingConsole.DhanApi.Models
         public decimal OiChangePercent => PreviousOpenInterest == 0 ? 0 : ((decimal)OiChange / PreviousOpenInterest);
     }
 
-    public class Greeks : ObservableModel
+    public class Greeks : ObservableModel // This now correctly inherits from the Core model
     {
         private decimal _delta;
 
