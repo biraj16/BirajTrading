@@ -75,6 +75,38 @@
                 <DataGridTextColumn Header="VWAP" Binding="{Binding Vwap, StringFormat=N2}" Width="*"/>
                 <DataGridTextColumn Header="LTP Signal" Binding="{Binding TradingSignal}" Width="1.2*"/>
 
+                <!-- OI Signal Column with Color Coding -->
+                <DataGridTemplateColumn Header="OI Signal" Width="1.2*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding OiSignal}" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding OiSignal}" Value="Long Buildup">
+                                                <Setter Property="Foreground" Value="#10a54a"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding OiSignal}" Value="Short Covering">
+                                                <Setter Property="Foreground" Value="#84d2a1"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding OiSignal}" Value="Short Buildup">
+                                                <Setter Property="Foreground" Value="#e34949"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding OiSignal}" Value="Long Unwinding">
+                                                <Setter Property="Foreground" Value="#f5a1a1"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding OiSignal}" Value="Neutral">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <DataGridTextColumn Header="1 Min EMA" Binding="{Binding EmaSignal1Min}" Width="*" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
@@ -131,7 +163,29 @@
                 <DataGridTextColumn Header="IV Signal" Binding="{Binding IvSignal}" Width="1.2*"/>
                 <DataGridTextColumn Header="Current Vol" Binding="{Binding CurrentVolume, StringFormat=N0}" Width="*"/>
                 <DataGridTextColumn Header="Avg Vol" Binding="{Binding AvgVolume, StringFormat=N0}" Width="*"/>
-                <DataGridTextColumn Header="Vol Signal" Binding="{Binding VolumeSignal}" Width="1.2*"/>
+
+                <!-- MODIFIED: Vol Signal Column with Color Coding -->
+                <DataGridTemplateColumn Header="Vol Signal" Width="1.2*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding VolumeSignal}" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding VolumeSignal}" Value="Volume Burst">
+                                                <Setter Property="Foreground" Value="DodgerBlue"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding VolumeSignal}" Value="Neutral">
+                                                <Setter Property="Foreground" Value="Gray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

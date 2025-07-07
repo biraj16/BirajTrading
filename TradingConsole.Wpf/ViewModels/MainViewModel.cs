@@ -880,6 +880,34 @@ namespace TradingConsole.Wpf.ViewModels
 
                 var securityIdsToSubscribe = new Dictionary<string, int>();
 
+                // --- START FIX ---
+                // Process positions for subscription BEFORE updating the UI model.
+                // This uses the `Exchange` field directly from the API response, which is more reliable.
+                if (positionsFromApi != null)
+                {
+                    foreach (var posData in positionsFromApi)
+                    {
+                        // We only care about open positions with a valid security ID and exchange segment.
+                        if (posData.NetQuantity != 0 && !string.IsNullOrEmpty(posData.SecurityId) && !string.IsNullOrEmpty(posData.Exchange))
+                        {
+                            // Check if the instrument is already on the dashboard (and thus already subscribed).
+                            bool isAlreadySubscribed = Dashboard.MonitoredInstruments.Any(i => i.SecurityId == posData.SecurityId);
+
+                            if (!isAlreadySubscribed)
+                            {
+                                // Get the numeric segment ID from the exchange name (e.g., "NSE_FNO" -> 2).
+                                int segmentId = _scripMasterService.GetSegmentIdFromName(posData.Exchange);
+                                if (segmentId != -1)
+                                {
+                                    securityIdsToSubscribe[posData.SecurityId] = segmentId;
+                                }
+                            }
+                        }
+                    }
+                }
+                // --- END FIX ---
+
+                // Now, update the UI. This can be done safely.
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     Portfolio.UpdatePositions(positionsFromApi);
@@ -891,27 +919,12 @@ namespace TradingConsole.Wpf.ViewModels
                         Portfolio.FundDetails.Collateral = fundLimitFromApi.CollateralAmount;
                         Portfolio.FundDetails.WithdrawableBalance = fundLimitFromApi.WithdrawableBalance;
                     }
-
-                    foreach (var position in Portfolio.OpenPositions)
-                    {
-                        if (!Dashboard.MonitoredInstruments.Any(i => i.SecurityId == position.SecurityId))
-                        {
-                            var scripInfo = _scripMasterService.FindBySecurityId(position.SecurityId);
-                            if (scripInfo != null)
-                            {
-                                int segmentId = _scripMasterService.GetSegmentIdFromName(scripInfo.Segment);
-                                if (segmentId != -1)
-                                {
-                                    securityIdsToSubscribe[position.SecurityId] = segmentId;
-                                }
-                            }
-                        }
-                    }
                 });
 
+                // The subscription call remains the same, but now it has the correct data.
                 if (securityIdsToSubscribe.Any())
                 {
-                    await _webSocketClient.SubscribeToInstrumentsAsync(securityIdsToSubscribe, 17);
+                    await _webSocketClient.SubscribeToInstrumentsAsync(securityIdsToSubscribe, 17); // 17 for Quote+OI feed
                 }
 
                 await UpdateStatusAsync("Portfolio updated.");
@@ -1152,7 +1165,7 @@ namespace TradingConsole.Wpf.ViewModels
                         var inst = new DashboardInstrument
                         {
                             Symbol = peInfo.SemInstrumentName,
-                            DisplayName = peInfo.SemInstrumentName,
+                            DisplayName = ceInfo.SemInstrumentName,
                             SecurityId = ceInfo.SecurityId,
                             FeedType = FeedTypeQuote,
                             SegmentId = optionSegmentId,
