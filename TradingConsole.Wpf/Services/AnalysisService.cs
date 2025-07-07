@@ -38,9 +38,6 @@ namespace TradingConsole.Wpf.Services
         public PriceZone LastZone { get; set; } = PriceZone.Inside;
     }
 
-    /// <summary>
-    /// --- MODIFIED: Added Candlestick signal properties ---
-    /// </summary>
     public class AnalysisResult : ObservableModel
     {
         private string _securityId = string.Empty;
@@ -63,13 +60,10 @@ namespace TradingConsole.Wpf.Services
         private string _dayRangeSignal = "Neutral";
         private string _openDriveSignal = "Neutral";
         private string _customLevelSignal = "N/A";
-
-        // --- NEW: Candlestick Pattern Signals ---
         private string _candleSignal1Min = "N/A";
         public string CandleSignal1Min { get => _candleSignal1Min; set { if (_candleSignal1Min != value) { _candleSignal1Min = value; OnPropertyChanged(); } } }
         private string _candleSignal5Min = "N/A";
         public string CandleSignal5Min { get => _candleSignal5Min; set { if (_candleSignal5Min != value) { _candleSignal5Min = value; OnPropertyChanged(); } } }
-
 
         public string CustomLevelSignal { get => _customLevelSignal; set { if (_customLevelSignal != value) { _customLevelSignal = value; OnPropertyChanged(); } } }
         public string SecurityId { get => _securityId; set { _securityId = value; OnPropertyChanged(); } }
@@ -208,9 +202,6 @@ namespace TradingConsole.Wpf.Services
             }
         }
 
-        /// <summary>
-        /// --- MODIFIED: Now calculates candlestick pattern signals. ---
-        /// </summary>
         private void RunComplexAnalysis(DashboardInstrument instrument)
         {
             var tickState = _tickAnalysisState[instrument.SecurityId];
@@ -249,7 +240,6 @@ namespace TradingConsole.Wpf.Services
             var paSignals = CalculatePriceActionSignals(instrument, vwap);
             string customLevelSignal = CalculateCustomLevelSignal(instrument);
 
-            // --- NEW: Calculate Candlestick patterns for 1m and 5m ---
             string candleSignal1Min = "N/A";
             if (oneMinCandles != null) candleSignal1Min = RecognizeCandlestickPattern(oneMinCandles);
 
@@ -444,60 +434,103 @@ namespace TradingConsole.Wpf.Services
         }
 
         /// <summary>
-        /// --- NEW: Recognizes candlestick patterns and includes volume confirmation. ---
+        /// --- MODIFIED: Now recognizes 3-candle patterns. ---
         /// </summary>
         private string RecognizeCandlestickPattern(List<Candle> candles)
         {
-            if (candles.Count < 2) return "N/A";
-
-            var current = candles.Last();
-            var previous = candles[candles.Count - 2];
-
-            decimal bodySize = Math.Abs(current.Open - current.Close);
-            decimal previousBodySize = Math.Abs(previous.Open - previous.Close);
-            decimal range = current.High - current.Low;
-
-            // Calculate volume change
-            string volInfo = "";
-            if (previous.Volume > 0)
+            // --- 3-Candle Pattern Recognition ---
+            if (candles.Count >= 3)
             {
-                decimal volChange = ((decimal)current.Volume - previous.Volume) / previous.Volume;
-                if (volChange > 0.1m) // Only show if volume increased by more than 10%
+                var c1 = candles.Last(); // Current
+                var c2 = candles[candles.Count - 2];
+                var c3 = candles[candles.Count - 3];
+                string volInfo = GetVolumeConfirmation(c1, c2);
+
+                // Morning Star (Bullish Reversal)
+                bool isMorningStar = c3.Close < c3.Open && // 1st is red
+                                     Math.Max(c2.Open, c2.Close) < c3.Close && // 2nd gaps down
+                                     c1.Close > c1.Open && // 3rd is green
+                                     c1.Close > (c3.Open + c3.Close) / 2; // 3rd closes above midpoint of 1st
+                if (isMorningStar) return $"Morning Star{volInfo}";
+
+                // Evening Star (Bearish Reversal)
+                bool isEveningStar = c3.Close > c3.Open && // 1st is green
+                                     Math.Min(c2.Open, c2.Close) > c3.Close && // 2nd gaps up
+                                     c1.Close < c1.Open && // 3rd is red
+                                     c1.Close < (c3.Open + c3.Close) / 2; // 3rd closes below midpoint of 1st
+                if (isEveningStar) return $"Evening Star{volInfo}";
+
+                // Three White Soldiers (Bullish Continuation)
+                bool areThreeWhiteSoldiers = c3.Close > c3.Open && c2.Close > c2.Open && c1.Close > c1.Open && // All green
+                                             c2.Open > c3.Open && c2.Close > c3.Close && // 2nd higher than 1st
+                                             c1.Open > c2.Open && c1.Close > c2.Close; // 3rd higher than 2nd
+                if (areThreeWhiteSoldiers) return "Three White Soldiers";
+
+                // Three Black Crows (Bearish Continuation)
+                bool areThreeBlackCrows = c3.Close < c3.Open && c2.Close < c2.Open && c1.Close < c1.Open && // All red
+                                          c2.Open < c3.Open && c2.Close < c3.Close && // 2nd lower than 1st
+                                          c1.Open < c2.Open && c1.Close < c2.Close; // 3rd lower than 2nd
+                if (areThreeBlackCrows) return "Three Black Crows";
+            }
+
+            // --- 2-Candle and 1-Candle Pattern Recognition (Fallback) ---
+            if (candles.Count >= 2)
+            {
+                var current = candles.Last();
+                var previous = candles[candles.Count - 1];
+                string volInfo = GetVolumeConfirmation(current, previous);
+
+                // Bullish Engulfing
+                if (current.Close > current.Open && previous.Close < previous.Open &&
+                    current.Close > previous.Open && current.Open < previous.Close)
                 {
-                    volInfo = $" (+{volChange:P0} Vol)";
+                    return $"Bullish Engulfing{volInfo}";
+                }
+
+                // Bearish Engulfing
+                if (current.Close < current.Open && previous.Close > previous.Open &&
+                    current.Open > previous.Close && current.Close < previous.Open)
+                {
+                    return $"Bearish Engulfing{volInfo}";
                 }
             }
 
-            // Bullish Engulfing
-            if (current.Close > current.Open && previous.Close < previous.Open && // Current is green, previous is red
-                current.Close > previous.Open && current.Open < previous.Close)
+            if (candles.Any())
             {
-                return $"Bullish Engulfing{volInfo}";
-            }
+                var current = candles.Last();
+                string volInfo = candles.Count > 1 ? GetVolumeConfirmation(current, candles[candles.Count - 2]) : "";
+                decimal bodySize = Math.Abs(current.Open - current.Close);
+                decimal range = current.High - current.Low;
 
-            // Bearish Engulfing
-            if (current.Close < current.Open && previous.Close > previous.Open && // Current is red, previous is green
-                current.Open > previous.Close && current.Close < previous.Open)
-            {
-                return $"Bearish Engulfing{volInfo}";
-            }
+                // Marubozu
+                if (range > 0 && bodySize / range > 0.95m)
+                {
+                    if (current.Close > current.Open) return $"Bullish Marubozu{volInfo}";
+                    if (current.Close < current.Open) return $"Bearish Marubozu{volInfo}";
+                }
 
-            // Marubozu
-            if (range > 0 && bodySize / range > 0.95m) // Body is >95% of the total candle range
-            {
-                if (current.Close > current.Open) return $"Bullish Marubozu{volInfo}";
-                if (current.Close < current.Open) return $"Bearish Marubozu{volInfo}";
-            }
-
-            // Doji
-            if (range > 0 && bodySize / range < 0.1m) // Body is <10% of the total candle range
-            {
-                return "Doji";
+                // Doji
+                if (range > 0 && bodySize / range < 0.1m)
+                {
+                    return "Doji";
+                }
             }
 
             return "N/A";
         }
 
+        private string GetVolumeConfirmation(Candle current, Candle previous)
+        {
+            if (previous.Volume > 0)
+            {
+                decimal volChange = ((decimal)current.Volume - previous.Volume) / previous.Volume;
+                if (volChange > 0.2m) // Only show if volume increased by more than 20%
+                {
+                    return $" (+{volChange:P0} Vol)";
+                }
+            }
+            return "";
+        }
 
         private string GetOrdinal(int num)
         {
