@@ -7,7 +7,7 @@
              xmlns:converters="clr-namespace:TradingConsole.Wpf.Converters"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewmodels:AnalysisTabViewModel, IsDesignTimeCreatable=True}"
-             d:DesignHeight="450" d:DesignWidth="1200">
+             d:DesignHeight="450" d:DesignWidth="1400">
     <UserControl.Resources>
         <converters:ValueToBrushConverter x:Key="ValueToBrushConverter"/>
         <converters:ValueToSignConverter x:Key="ValueToSignConverter"/>
@@ -72,10 +72,96 @@
             </DataGrid.GroupStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Symbol" Binding="{Binding Symbol}" Width="1.5*"/>
-                <DataGridTextColumn Header="VWAP" Binding="{Binding Vwap, StringFormat=N2}" Width="*"/>
-                <DataGridTextColumn Header="LTP Signal" Binding="{Binding TradingSignal}" Width="1.2*"/>
 
-                <!-- OI Signal Column with Color Coding -->
+                <!-- Restored VWAP Column -->
+                <DataGridTextColumn Header="VWAP" Binding="{Binding Vwap, StringFormat=N2}" Width="*"/>
+
+                <!-- NEW: Price Action Signal Columns -->
+                <DataGridTemplateColumn Header="vs VWAP" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding PriceVsVwapSignal}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding PriceVsVwapSignal}" Value="Above VWAP">
+                                                <Setter Property="Foreground" Value="Green"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding PriceVsVwapSignal}" Value="Below VWAP">
+                                                <Setter Property="Foreground" Value="Red"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="vs Close" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding PriceVsCloseSignal}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding PriceVsCloseSignal}" Value="Above Close">
+                                                <Setter Property="Foreground" Value="Green"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding PriceVsCloseSignal}" Value="Below Close">
+                                                <Setter Property="Foreground" Value="Red"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="Day Range" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding DayRangeSignal}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DayRangeSignal}" Value="Near High">
+                                                <Setter Property="Foreground" Value="Green"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding DayRangeSignal}" Value="Near Low">
+                                                <Setter Property="Foreground" Value="Red"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="Open Drive" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding OpenDriveSignal}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding OpenDriveSignal}" Value="Drive Up">
+                                                <Setter Property="Foreground" Value="Green"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding OpenDriveSignal}" Value="Drive Down">
+                                                <Setter Property="Foreground" Value="Red"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- NEW: OI Signal Column -->
                 <DataGridTemplateColumn Header="OI Signal" Width="1.2*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -107,6 +193,7 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
+                <!-- Restored EMA Columns -->
                 <DataGridTextColumn Header="1 Min EMA" Binding="{Binding EmaSignal1Min}" Width="*" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
@@ -123,7 +210,6 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-
                 <DataGridTextColumn Header="5 Min EMA" Binding="{Binding EmaSignal5Min}" Width="*" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
@@ -140,7 +226,6 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-
                 <DataGridTextColumn Header="15 Min EMA" Binding="{Binding EmaSignal15Min}" Width="*" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
@@ -158,13 +243,16 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
 
+                <!-- Restored IV Columns -->
                 <DataGridTextColumn Header="Current IV" Binding="{Binding CurrentIv, StringFormat='{}{0:F2}%'}" Width="*"/>
                 <DataGridTextColumn Header="Avg IV" Binding="{Binding AvgIv, StringFormat='{}{0:F2}%'}" Width="*"/>
                 <DataGridTextColumn Header="IV Signal" Binding="{Binding IvSignal}" Width="1.2*"/>
+
+                <!-- Restored Volume Columns -->
                 <DataGridTextColumn Header="Current Vol" Binding="{Binding CurrentVolume, StringFormat=N0}" Width="*"/>
                 <DataGridTextColumn Header="Avg Vol" Binding="{Binding AvgVolume, StringFormat=N0}" Width="*"/>
 
-                <!-- MODIFIED: Vol Signal Column with Color Coding -->
+                <!-- Restored and Styled Vol Signal Column -->
                 <DataGridTemplateColumn Header="Vol Signal" Width="1.2*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>

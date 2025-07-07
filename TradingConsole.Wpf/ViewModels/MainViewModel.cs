@@ -206,7 +206,8 @@ namespace TradingConsole.Wpf.ViewModels
                 var instrumentToUpdate = Dashboard.MonitoredInstruments.FirstOrDefault(i => i.SecurityId == result.SecurityId);
                 if (instrumentToUpdate != null)
                 {
-                    instrumentToUpdate.TradingSignal = result.TradingSignal;
+                    // --- FIX: Use the 1-minute EMA signal for the dashboard's simple signal display ---
+                    instrumentToUpdate.TradingSignal = result.EmaSignal1Min;
                 }
 
                 AnalysisTab.UpdateAnalysisResult(result);
@@ -880,22 +881,16 @@ namespace TradingConsole.Wpf.ViewModels
 
                 var securityIdsToSubscribe = new Dictionary<string, int>();
 
-                // --- START FIX ---
-                // Process positions for subscription BEFORE updating the UI model.
-                // This uses the `Exchange` field directly from the API response, which is more reliable.
                 if (positionsFromApi != null)
                 {
                     foreach (var posData in positionsFromApi)
                     {
-                        // We only care about open positions with a valid security ID and exchange segment.
                         if (posData.NetQuantity != 0 && !string.IsNullOrEmpty(posData.SecurityId) && !string.IsNullOrEmpty(posData.Exchange))
                         {
-                            // Check if the instrument is already on the dashboard (and thus already subscribed).
                             bool isAlreadySubscribed = Dashboard.MonitoredInstruments.Any(i => i.SecurityId == posData.SecurityId);
 
                             if (!isAlreadySubscribed)
                             {
-                                // Get the numeric segment ID from the exchange name (e.g., "NSE_FNO" -> 2).
                                 int segmentId = _scripMasterService.GetSegmentIdFromName(posData.Exchange);
                                 if (segmentId != -1)
                                 {
@@ -905,9 +900,7 @@ namespace TradingConsole.Wpf.ViewModels
                         }
                     }
                 }
-                // --- END FIX ---
 
-                // Now, update the UI. This can be done safely.
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     Portfolio.UpdatePositions(positionsFromApi);
@@ -921,10 +914,9 @@ namespace TradingConsole.Wpf.ViewModels
                     }
                 });
 
-                // The subscription call remains the same, but now it has the correct data.
                 if (securityIdsToSubscribe.Any())
                 {
-                    await _webSocketClient.SubscribeToInstrumentsAsync(securityIdsToSubscribe, 17); // 17 for Quote+OI feed
+                    await _webSocketClient.SubscribeToInstrumentsAsync(securityIdsToSubscribe, 17);
                 }
 
                 await UpdateStatusAsync("Portfolio updated.");

@@ -12,10 +12,6 @@ namespace TradingConsole.Wpf.Services
 {
     #region Data Models
 
-    /// <summary>
-    /// Represents a single OHLCV candle for a specific timeframe.
-    /// --- MODIFIED: Added OpenInterest property ---
-    /// </summary>
     public class Candle
     {
         public DateTime Timestamp { get; set; }
@@ -24,12 +20,9 @@ namespace TradingConsole.Wpf.Services
         public decimal Low { get; set; }
         public decimal Close { get; set; }
         public long Volume { get; set; }
-        public long OpenInterest { get; set; } // OI at the end of the candle's timeframe
+        public long OpenInterest { get; set; }
     }
 
-    /// <summary>
-    /// Holds the calculated analysis state (like EMAs) for a single timeframe.
-    /// </summary>
     public class TimeframeAnalysisState
     {
         public decimal CurrentShortEma { get; set; }
@@ -37,48 +30,54 @@ namespace TradingConsole.Wpf.Services
     }
 
     /// <summary>
-    /// A data model to hold the state and calculated values for a single instrument being analyzed.
-    /// --- MODIFIED: Added OiSignal property ---
+    /// --- MODIFIED: Replaced TradingSignal with specific price action properties ---
     /// </summary>
     public class AnalysisResult : ObservableModel
     {
-        // --- Existing Properties ---
         private string _securityId = string.Empty;
         private string _symbol = string.Empty;
         private decimal _vwap;
-        private string _tradingSignal = string.Empty;
         private decimal _currentIv;
         private decimal _avgIv;
         private string _ivSignal = "Neutral";
         private long _currentVolume;
         private long _avgVolume;
         private string _volumeSignal = "Neutral";
+        private string _oiSignal = "N/A";
         private string _instrumentGroup = string.Empty;
         private string _underlyingGroup = string.Empty;
         private string _emaSignal1Min = "N/A";
         private string _emaSignal5Min = "N/A";
         private string _emaSignal15Min = "N/A";
 
-        // --- NEW: OI Signal Property ---
-        private string _oiSignal = "N/A";
-        public string OiSignal { get => _oiSignal; set { if (_oiSignal != value) { _oiSignal = value; OnPropertyChanged(); } } }
-
+        // --- NEW: Specific Price Action Signal Properties ---
+        private string _priceVsVwapSignal = "Neutral";
+        private string _priceVsCloseSignal = "Neutral";
+        private string _dayRangeSignal = "Neutral";
+        private string _openDriveSignal = "Neutral";
 
         public string SecurityId { get => _securityId; set { _securityId = value; OnPropertyChanged(); } }
         public string Symbol { get => _symbol; set { _symbol = value; OnPropertyChanged(); } }
         public decimal Vwap { get => _vwap; set { if (_vwap != value) { _vwap = value; OnPropertyChanged(); } } }
-        public string TradingSignal { get => _tradingSignal; set { if (_tradingSignal != value) { _tradingSignal = value; OnPropertyChanged(); } } }
         public decimal CurrentIv { get => _currentIv; set { if (_currentIv != value) { _currentIv = value; OnPropertyChanged(); } } }
         public decimal AvgIv { get => _avgIv; set { if (_avgIv != value) { _avgIv = value; OnPropertyChanged(); } } }
         public string IvSignal { get => _ivSignal; set { if (_ivSignal != value) { _ivSignal = value; OnPropertyChanged(); } } }
         public long CurrentVolume { get => _currentVolume; set { if (_currentVolume != value) { _currentVolume = value; OnPropertyChanged(); } } }
         public long AvgVolume { get => _avgVolume; set { if (_avgVolume != value) { _avgVolume = value; OnPropertyChanged(); } } }
         public string VolumeSignal { get => _volumeSignal; set { if (_volumeSignal != value) { _volumeSignal = value; OnPropertyChanged(); } } }
+        public string OiSignal { get => _oiSignal; set { if (_oiSignal != value) { _oiSignal = value; OnPropertyChanged(); } } }
         public string InstrumentGroup { get => _instrumentGroup; set { if (_instrumentGroup != value) { _instrumentGroup = value; OnPropertyChanged(); } } }
         public string UnderlyingGroup { get => _underlyingGroup; set { if (_underlyingGroup != value) { _underlyingGroup = value; OnPropertyChanged(); } } }
         public string EmaSignal1Min { get => _emaSignal1Min; set { if (_emaSignal1Min != value) { _emaSignal1Min = value; OnPropertyChanged(); } } }
         public string EmaSignal5Min { get => _emaSignal5Min; set { if (_emaSignal5Min != value) { _emaSignal5Min = value; OnPropertyChanged(); } } }
         public string EmaSignal15Min { get => _emaSignal15Min; set { if (_emaSignal15Min != value) { _emaSignal15Min = value; OnPropertyChanged(); } } }
+
+        // --- NEW: Public accessors for the new price action signals ---
+        public string PriceVsVwapSignal { get => _priceVsVwapSignal; set { if (_priceVsVwapSignal != value) { _priceVsVwapSignal = value; OnPropertyChanged(); } } }
+        public string PriceVsCloseSignal { get => _priceVsCloseSignal; set { if (_priceVsCloseSignal != value) { _priceVsCloseSignal = value; OnPropertyChanged(); } } }
+        public string DayRangeSignal { get => _dayRangeSignal; set { if (_dayRangeSignal != value) { _dayRangeSignal = value; OnPropertyChanged(); } } }
+        public string OpenDriveSignal { get => _openDriveSignal; set { if (_openDriveSignal != value) { _openDriveSignal = value; OnPropertyChanged(); } } }
+
 
         public string FullGroupIdentifier
         {
@@ -143,9 +142,6 @@ namespace TradingConsole.Wpf.Services
             RunComplexAnalysis(instrument);
         }
 
-        /// <summary>
-        /// --- MODIFIED: Now also captures the latest Open Interest for the candle. ---
-        /// </summary>
         private void AggregateIntoCandle(DashboardInstrument instrument, TimeSpan timeframe)
         {
             if (!_multiTimeframeCandles[instrument.SecurityId].ContainsKey(timeframe))
@@ -169,7 +165,7 @@ namespace TradingConsole.Wpf.Services
                     Low = instrument.LTP,
                     Close = instrument.LTP,
                     Volume = instrument.LastTradedQuantity,
-                    OpenInterest = instrument.OpenInterest // Capture initial OI
+                    OpenInterest = instrument.OpenInterest
                 });
 
                 if (candles.Count > MaxCandlesToStore)
@@ -183,12 +179,12 @@ namespace TradingConsole.Wpf.Services
                 currentCandle.Low = Math.Min(currentCandle.Low, instrument.LTP);
                 currentCandle.Close = instrument.LTP;
                 currentCandle.Volume += instrument.LastTradedQuantity;
-                currentCandle.OpenInterest = instrument.OpenInterest; // Always update with the latest OI
+                currentCandle.OpenInterest = instrument.OpenInterest;
             }
         }
 
         /// <summary>
-        /// --- MODIFIED: Now includes the new OI analysis. ---
+        /// --- MODIFIED: Now calculates individual price action signals. ---
         /// </summary>
         private void RunComplexAnalysis(DashboardInstrument instrument)
         {
@@ -219,12 +215,14 @@ namespace TradingConsole.Wpf.Services
                 (volumeSignal, currentCandleVolume, avgCandleVolume) = CalculateVolumeSignalForTimeframe(oneMinCandles);
             }
 
-            // --- NEW: Perform OI Analysis ---
             string oiSignal = "N/A";
             if (oneMinCandles != null && oneMinCandles.Any())
             {
                 oiSignal = CalculateOiSignal(oneMinCandles);
             }
+
+            // --- NEW: Calculate all price action signals ---
+            var paSignals = CalculatePriceActionSignals(instrument, vwap);
 
             var finalResult = new AnalysisResult
             {
@@ -237,13 +235,18 @@ namespace TradingConsole.Wpf.Services
                 CurrentVolume = currentCandleVolume,
                 AvgVolume = avgCandleVolume,
                 VolumeSignal = volumeSignal,
-                OiSignal = oiSignal, // Set the new OI signal
+                OiSignal = oiSignal,
                 EmaSignal1Min = mtaSignals.GetValueOrDefault(TimeSpan.FromMinutes(1), "N/A"),
                 EmaSignal5Min = mtaSignals.GetValueOrDefault(TimeSpan.FromMinutes(5), "N/A"),
                 EmaSignal15Min = mtaSignals.GetValueOrDefault(TimeSpan.FromMinutes(15), "N/A"),
-                TradingSignal = mtaSignals.GetValueOrDefault(TimeSpan.FromMinutes(1), "Neutral"),
                 InstrumentGroup = GetInstrumentGroup(instrument),
-                UnderlyingGroup = instrument.UnderlyingSymbol
+                UnderlyingGroup = instrument.UnderlyingSymbol,
+
+                // --- NEW: Populate the individual price action signals ---
+                PriceVsVwapSignal = paSignals.priceVsVwap,
+                PriceVsCloseSignal = paSignals.priceVsClose,
+                DayRangeSignal = paSignals.dayRange,
+                OpenDriveSignal = paSignals.openDrive
             };
 
             OnAnalysisUpdated?.Invoke(finalResult);
@@ -313,35 +316,67 @@ namespace TradingConsole.Wpf.Services
             return ("Neutral", currentCandleVolume, (long)averageVolume);
         }
 
-        /// <summary>
-        /// --- NEW: Calculates the OI signal based on changes in price and Open Interest. ---
-        /// </summary>
-        /// <param name="candles">The list of 1-minute candles for the instrument.</param>
-        /// <returns>A string indicating the market interpretation.</returns>
         private string CalculateOiSignal(List<Candle> candles)
         {
-            // We need at least two candles to compare the change between them.
-            if (candles.Count < 2)
-            {
-                return "Building History...";
-            }
+            if (candles.Count < 2) return "Building History...";
 
             var currentCandle = candles.Last();
             var previousCandle = candles[candles.Count - 2];
 
-            // Determine the change in price and OI
             bool isPriceUp = currentCandle.Close > previousCandle.Close;
             bool isPriceDown = currentCandle.Close < previousCandle.Close;
             bool isOiUp = currentCandle.OpenInterest > previousCandle.OpenInterest;
             bool isOiDown = currentCandle.OpenInterest < previousCandle.OpenInterest;
 
-            // Apply the interpretation logic
             if (isPriceUp && isOiUp) return "Long Buildup";
             if (isPriceUp && isOiDown) return "Short Covering";
             if (isPriceDown && isOiUp) return "Short Buildup";
             if (isPriceDown && isOiDown) return "Long Unwinding";
 
             return "Neutral";
+        }
+
+        /// <summary>
+        /// --- NEW: Calculates multiple price action signals based on live data. ---
+        /// </summary>
+        private (string priceVsVwap, string priceVsClose, string dayRange, string openDrive) CalculatePriceActionSignals(DashboardInstrument instrument, decimal vwap)
+        {
+            // 1. Price vs VWAP
+            string priceVsVwap = "Neutral";
+            if (vwap > 0)
+            {
+                if (instrument.LTP > vwap) priceVsVwap = "Above VWAP";
+                else if (instrument.LTP < vwap) priceVsVwap = "Below VWAP";
+            }
+
+            // 2. Price vs Previous Close
+            string priceVsClose = "Neutral";
+            if (instrument.Close > 0)
+            {
+                if (instrument.LTP > instrument.Close) priceVsClose = "Above Close";
+                else if (instrument.LTP < instrument.Close) priceVsClose = "Below Close";
+            }
+
+            // 3. Day's Range
+            string dayRange = "Neutral";
+            decimal range = instrument.High - instrument.Low;
+            if (range > 0)
+            {
+                decimal positionInDayRange = (instrument.LTP - instrument.Low) / range;
+                if (positionInDayRange > 0.8m) dayRange = "Near High";
+                else if (positionInDayRange < 0.2m) dayRange = "Near Low";
+                else dayRange = "Mid-Range";
+            }
+
+            // 4. Open Drive
+            string openDrive = "No";
+            if (instrument.Open > 0 && instrument.Low > 0 && instrument.High > 0)
+            {
+                if (instrument.Open == instrument.Low) openDrive = "Drive Up";
+                else if (instrument.Open == instrument.High) openDrive = "Drive Down";
+            }
+
+            return (priceVsVwap, priceVsClose, dayRange, openDrive);
         }
 
 

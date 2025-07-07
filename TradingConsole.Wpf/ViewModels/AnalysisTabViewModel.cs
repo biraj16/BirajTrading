@@ -24,24 +24,28 @@ namespace TradingConsole.Wpf.ViewModels
 
             if (existingResult != null)
             {
-                // Update properties from the new result to the existing one.
+                // Update all properties from the new result to the existing one.
                 // This will trigger UI updates because AnalysisResult implements INotifyPropertyChanged.
                 existingResult.Vwap = newResult.Vwap;
-                existingResult.TradingSignal = newResult.TradingSignal;
                 existingResult.CurrentIv = newResult.CurrentIv;
                 existingResult.AvgIv = newResult.AvgIv;
                 existingResult.IvSignal = newResult.IvSignal;
                 existingResult.CurrentVolume = newResult.CurrentVolume;
                 existingResult.AvgVolume = newResult.AvgVolume;
                 existingResult.VolumeSignal = newResult.VolumeSignal;
+                existingResult.OiSignal = newResult.OiSignal;
                 existingResult.Symbol = newResult.Symbol;
                 existingResult.InstrumentGroup = newResult.InstrumentGroup;
                 existingResult.UnderlyingGroup = newResult.UnderlyingGroup;
-
-                // Update the multi-timeframe EMA signal properties
                 existingResult.EmaSignal1Min = newResult.EmaSignal1Min;
                 existingResult.EmaSignal5Min = newResult.EmaSignal5Min;
                 existingResult.EmaSignal15Min = newResult.EmaSignal15Min;
+
+                // --- FIX: Update the new price action signals ---
+                existingResult.PriceVsVwapSignal = newResult.PriceVsVwapSignal;
+                existingResult.PriceVsCloseSignal = newResult.PriceVsCloseSignal;
+                existingResult.DayRangeSignal = newResult.DayRangeSignal;
+                existingResult.OpenDriveSignal = newResult.OpenDriveSignal;
             }
             else
             {
