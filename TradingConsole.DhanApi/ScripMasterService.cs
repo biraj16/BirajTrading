@@ -51,7 +51,7 @@ namespace TradingConsole.DhanApi
 
                 var records = csv.GetRecords<ScripInfo>().ToList();
 
-                var allowedTypes = new HashSet<string> { "EQUITY", "FUTIDX", "FUTSTK", "INDEX", "OPTIDX", "OPTSTK" };
+                var allowedTypes = new HashSet<string> { "EQUITY", "FUTIDX", "FUTSTK", "INDEX", "OPTIDX" };
 
                 _scripMaster = records
                     .Where(r => !string.IsNullOrEmpty(r.InstrumentType) && allowedTypes.Contains(r.InstrumentType.Trim().ToUpper()))
