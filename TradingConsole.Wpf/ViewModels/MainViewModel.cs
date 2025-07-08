@@ -1156,8 +1156,8 @@ namespace TradingConsole.Wpf.ViewModels
                         var inst = new DashboardInstrument
                         {
                             Symbol = peInfo.SemInstrumentName,
-                            DisplayName = ceInfo.SemInstrumentName,
-                            SecurityId = ceInfo.SecurityId,
+                            DisplayName = peInfo.SemInstrumentName,
+                            SecurityId = peInfo.SecurityId,
                             FeedType = FeedTypeQuote,
                             SegmentId = optionSegmentId,
                             UnderlyingSymbol = indexInstrument.Symbol

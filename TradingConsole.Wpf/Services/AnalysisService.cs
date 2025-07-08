@@ -146,8 +146,23 @@ namespace TradingConsole.Wpf.Services
 
         public async void OnInstrumentDataReceived(DashboardInstrument instrument)
         {
-            if (!_backfilledInstruments.Contains(instrument.SecurityId))
+            // --- FIX: Initialize state synchronously BEFORE any async calls ---
+            bool isNewInstrument = !_backfilledInstruments.Contains(instrument.SecurityId);
+            if (isNewInstrument)
             {
+                _tickAnalysisState[instrument.SecurityId] = (0, 0, new List<decimal>());
+                _multiTimeframeCandles[instrument.SecurityId] = new Dictionary<TimeSpan, List<Candle>>();
+                foreach (var tf in _timeframes)
+                {
+                    _multiTimeframeCandles[instrument.SecurityId][tf] = new List<Candle>();
+                }
+                _multiTimeframeAnalysisState[instrument.SecurityId] = new Dictionary<TimeSpan, TimeframeAnalysisState>();
+
+                if (instrument.SegmentId == 0)
+                {
+                    _customLevelStates[instrument.Symbol] = new CustomLevelState();
+                }
+
                 await BackfillDataIfNeededAsync(instrument);
             }
 
@@ -168,12 +183,6 @@ namespace TradingConsole.Wpf.Services
                 var historicalData = await _apiClient.GetIntradayHistoricalDataAsync(instrument.SecurityId, GetExchangeSegmentString(instrument.SegmentId), GetInstrumentTypeString(instrument));
 
                 if (historicalData?.Data == null) return;
-
-                _multiTimeframeCandles[instrument.SecurityId] = new Dictionary<TimeSpan, List<Candle>>();
-                foreach (var tf in _timeframes)
-                {
-                    _multiTimeframeCandles[instrument.SecurityId][tf] = new List<Candle>();
-                }
 
                 for (int i = 0; i < historicalData.Data.StartTime.Count; i++)
                 {
@@ -234,7 +243,7 @@ namespace TradingConsole.Wpf.Services
         {
             if (!_multiTimeframeCandles.ContainsKey(instrument.SecurityId) || !_multiTimeframeCandles[instrument.SecurityId].ContainsKey(timeframe))
             {
-                return; // Should have been initialized by backfill
+                return;
             }
 
             var candles = _multiTimeframeCandles[instrument.SecurityId][timeframe];
