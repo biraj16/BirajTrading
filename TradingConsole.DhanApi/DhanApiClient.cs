@@ -15,12 +15,8 @@ namespace TradingConsole.DhanApi
     {
         private readonly HttpClient _httpClient;
 
-        // --- MODIFIED: Implemented three separate semaphores for different API lanes ---
-        // 1. For time-critical orders, with ZERO delay.
         private readonly SemaphoreSlim _orderApiSemaphore = new SemaphoreSlim(1, 1);
-        // 2. For the option chain, with a strict 3-second delay.
         private readonly SemaphoreSlim _optionChainApiSemaphore = new SemaphoreSlim(1, 1);
-        // 3. For all other non-critical data calls, with a safe default delay.
         private readonly SemaphoreSlim _generalApiSemaphore = new SemaphoreSlim(1, 1);
 
         private class OptionChainRequestPayload
@@ -34,6 +30,62 @@ namespace TradingConsole.DhanApi
             [JsonProperty("Expiry", NullValueHandling = NullValueHandling.Ignore)]
             public string? Expiry { get; set; }
         }
+
+        // --- NEW: Models for Historical Data API ---
+        private class HistoricalDataRequest
+        {
+            [JsonProperty("securityId")]
+            public string SecurityId { get; set; } = string.Empty;
+
+            [JsonProperty("exchangeSegment")]
+            public string ExchangeSegment { get; set; } = string.Empty;
+
+            [JsonProperty("instrument")]
+            public string Instrument { get; set; } = string.Empty;
+
+            [JsonProperty("expiryCode")]
+            public int ExpiryCode { get; set; }
+
+            [JsonProperty("fromDate")]
+            public string FromDate { get; set; } = string.Empty;
+
+            [JsonProperty("toDate")]
+            public string ToDate { get; set; } = string.Empty;
+        }
+
+        public class HistoricalDataResponse
+        {
+            [JsonProperty("status")]
+            public string Status { get; set; } = string.Empty;
+
+            [JsonProperty("data")]
+            public HistoricalDataPoints? Data { get; set; }
+        }
+
+        public class HistoricalDataPoints
+        {
+            [JsonProperty("open")]
+            public List<decimal> Open { get; set; } = new List<decimal>();
+
+            [JsonProperty("high")]
+            public List<decimal> High { get; set; } = new List<decimal>();
+
+            [JsonProperty("low")]
+            public List<decimal> Low { get; set; } = new List<decimal>();
+
+            [JsonProperty("close")]
+            public List<decimal> Close { get; set; } = new List<decimal>();
+
+            [JsonProperty("volume")]
+            public List<long> Volume { get; set; } = new List<long>();
+
+            [JsonProperty("oi")]
+            public List<long> OpenInterest { get; set; } = new List<long>();
+
+            [JsonProperty("start_time")]
+            public List<long> StartTime { get; set; } = new List<long>();
+        }
+
 
         public DhanApiClient(string clientId, string accessToken)
         {
@@ -66,7 +118,6 @@ namespace TradingConsole.DhanApi
             }
         }
 
-        // --- ADDED: High-priority execution wrapper for orders with ZERO delay ---
         private async Task<T?> ExecuteOrderApiCall<T>(Func<Task<HttpResponseMessage>> apiCallFunc, string apiName) where T : class
         {
             await _orderApiSemaphore.WaitAsync();
@@ -82,19 +133,16 @@ namespace TradingConsole.DhanApi
             }
             finally
             {
-                // No delay for orders
                 _orderApiSemaphore.Release();
             }
         }
 
-        // --- ADDED: Low-priority execution wrapper for Option Chain with a 3.1s delay ---
         private async Task<T?> ExecuteOptionChainApiCall<T>(Func<Task<HttpResponseMessage>> apiCallFunc, string apiName) where T : class
         {
             await _optionChainApiSemaphore.WaitAsync();
             try
             {
                 var response = await apiCallFunc();
-                // Enforce the strict 3-second rate limit for option chain calls by waiting AFTER the call
                 await Task.Delay(3100);
                 return await HandleResponse<T>(response, apiName);
             }
@@ -109,14 +157,13 @@ namespace TradingConsole.DhanApi
             }
         }
 
-        // --- ADDED: Wrapper for general data calls with a safe 250ms delay ---
         private async Task<T?> ExecuteGeneralApiCall<T>(Func<Task<HttpResponseMessage>> apiCallFunc, string apiName) where T : class
         {
             await _generalApiSemaphore.WaitAsync();
             try
             {
                 var response = await apiCallFunc();
-                await Task.Delay(250); // Safe delay for non-critical API calls
+                await Task.Delay(250);
                 return await HandleResponse<T>(response, apiName);
             }
             catch (Exception ex) when (ex is HttpRequestException || ex is JsonException)
@@ -130,7 +177,22 @@ namespace TradingConsole.DhanApi
             }
         }
 
-        // --- MODIFIED: All methods now use the appropriate execution lane ---
+        // --- NEW: Method to get historical intraday data ---
+        public async Task<HistoricalDataResponse?> GetIntradayHistoricalDataAsync(string securityId, string exchangeSegment, string instrumentType)
+        {
+            var request = new HistoricalDataRequest
+            {
+                SecurityId = securityId,
+                ExchangeSegment = exchangeSegment,
+                Instrument = instrumentType,
+                FromDate = DateTime.Now.ToString("yyyy-MM-dd"),
+                ToDate = DateTime.Now.ToString("yyyy-MM-dd")
+            };
+            string jsonPayload = JsonConvert.SerializeObject(request);
+            var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+            return await ExecuteGeneralApiCall<HistoricalDataResponse>(() => _httpClient.PostAsync("/v1/intraday", content), "GetIntradayHistoricalData");
+        }
+
 
         public async Task<List<PositionResponse>?> GetPositionsAsync()
         {
@@ -155,7 +217,6 @@ namespace TradingConsole.DhanApi
             var payload = new OptionChainRequestPayload { UnderlyingScrip = int.Parse(underlyingScripId), UnderlyingSeg = segment, Expiry = expiryDate };
             string jsonPayload = JsonConvert.SerializeObject(payload);
             var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-            // Uses the dedicated, rate-limited lane for option chains
             return await ExecuteOptionChainApiCall<OptionChainResponse>(() => _httpClient.PostAsync("/v2/optionchain", content), "GetOptionChain");
         }
 

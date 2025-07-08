@@ -154,8 +154,7 @@ namespace TradingConsole.Wpf.ViewModels
             Settings = new SettingsViewModel(settingsService);
             Settings.SettingsSaved += Settings_SettingsSaved;
 
-            // --- FIX: Pass the SettingsViewModel to the AnalysisService constructor ---
-            _analysisService = new AnalysisService(Settings);
+            _analysisService = new AnalysisService(Settings, _apiClient);
             _analysisService.ShortEmaLength = Settings.ShortEmaLength;
             _analysisService.LongEmaLength = Settings.LongEmaLength;
             _analysisService.OnAnalysisUpdated += OnAnalysisResultUpdated;

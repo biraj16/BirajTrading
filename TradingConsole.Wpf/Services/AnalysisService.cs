@@ -6,13 +6,14 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using TradingConsole.Core.Models;
-using TradingConsole.Wpf.ViewModels; // Required for SettingsViewModel
+using TradingConsole.DhanApi;
+using TradingConsole.Wpf.ViewModels;
 
 namespace TradingConsole.Wpf.Services
 {
     #region Data Models
-
     public class Candle
     {
         public DateTime Timestamp { get; set; }
@@ -61,10 +62,10 @@ namespace TradingConsole.Wpf.Services
         private string _openDriveSignal = "Neutral";
         private string _customLevelSignal = "N/A";
         private string _candleSignal1Min = "N/A";
-        public string CandleSignal1Min { get => _candleSignal1Min; set { if (_candleSignal1Min != value) { _candleSignal1Min = value; OnPropertyChanged(); } } }
         private string _candleSignal5Min = "N/A";
-        public string CandleSignal5Min { get => _candleSignal5Min; set { if (_candleSignal5Min != value) { _candleSignal5Min = value; OnPropertyChanged(); } } }
 
+        public string CandleSignal1Min { get => _candleSignal1Min; set { if (_candleSignal1Min != value) { _candleSignal1Min = value; OnPropertyChanged(); } } }
+        public string CandleSignal5Min { get => _candleSignal5Min; set { if (_candleSignal5Min != value) { _candleSignal5Min = value; OnPropertyChanged(); } } }
         public string CustomLevelSignal { get => _customLevelSignal; set { if (_customLevelSignal != value) { _customLevelSignal = value; OnPropertyChanged(); } } }
         public string SecurityId { get => _securityId; set { _securityId = value; OnPropertyChanged(); } }
         public string Symbol { get => _symbol; set { _symbol = value; OnPropertyChanged(); } }
@@ -113,7 +114,9 @@ namespace TradingConsole.Wpf.Services
     {
         #region Parameters and State
         private readonly SettingsViewModel _settingsViewModel;
+        private readonly DhanApiClient _apiClient;
         private readonly Dictionary<string, CustomLevelState> _customLevelStates = new();
+        private readonly HashSet<string> _backfilledInstruments = new HashSet<string>();
 
         public int ShortEmaLength { get; set; } = 9;
         public int LongEmaLength { get; set; } = 21;
@@ -135,22 +138,17 @@ namespace TradingConsole.Wpf.Services
         public event Action<AnalysisResult>? OnAnalysisUpdated;
         #endregion
 
-        public AnalysisService(SettingsViewModel settingsViewModel)
+        public AnalysisService(SettingsViewModel settingsViewModel, DhanApiClient apiClient)
         {
             _settingsViewModel = settingsViewModel;
+            _apiClient = apiClient;
         }
 
-        public void OnInstrumentDataReceived(DashboardInstrument instrument)
+        public async void OnInstrumentDataReceived(DashboardInstrument instrument)
         {
-            if (!_tickAnalysisState.ContainsKey(instrument.SecurityId))
+            if (!_backfilledInstruments.Contains(instrument.SecurityId))
             {
-                _tickAnalysisState[instrument.SecurityId] = (0, 0, new List<decimal>());
-                _multiTimeframeCandles[instrument.SecurityId] = new Dictionary<TimeSpan, List<Candle>>();
-                _multiTimeframeAnalysisState[instrument.SecurityId] = new Dictionary<TimeSpan, TimeframeAnalysisState>();
-                if (instrument.SegmentId == 0)
-                {
-                    _customLevelStates[instrument.Symbol] = new CustomLevelState();
-                }
+                await BackfillDataIfNeededAsync(instrument);
             }
 
             foreach (var timeframe in _timeframes)
@@ -161,11 +159,82 @@ namespace TradingConsole.Wpf.Services
             RunComplexAnalysis(instrument);
         }
 
+        private async Task BackfillDataIfNeededAsync(DashboardInstrument instrument)
+        {
+            _backfilledInstruments.Add(instrument.SecurityId);
+
+            try
+            {
+                var historicalData = await _apiClient.GetIntradayHistoricalDataAsync(instrument.SecurityId, GetExchangeSegmentString(instrument.SegmentId), GetInstrumentTypeString(instrument));
+
+                if (historicalData?.Data == null) return;
+
+                _multiTimeframeCandles[instrument.SecurityId] = new Dictionary<TimeSpan, List<Candle>>();
+                foreach (var tf in _timeframes)
+                {
+                    _multiTimeframeCandles[instrument.SecurityId][tf] = new List<Candle>();
+                }
+
+                for (int i = 0; i < historicalData.Data.StartTime.Count; i++)
+                {
+                    var candle = new Candle
+                    {
+                        Timestamp = DateTimeOffset.FromUnixTimeSeconds(historicalData.Data.StartTime[i]).UtcDateTime,
+                        Open = historicalData.Data.Open[i],
+                        High = historicalData.Data.High[i],
+                        Low = historicalData.Data.Low[i],
+                        Close = historicalData.Data.Close[i],
+                        Volume = historicalData.Data.Volume[i],
+                        OpenInterest = historicalData.Data.OpenInterest[i]
+                    };
+
+                    foreach (var timeframe in _timeframes)
+                    {
+                        AggregateHistoricalCandle(instrument.SecurityId, candle, timeframe);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Backfill] Failed for {instrument.Symbol}: {ex.Message}");
+            }
+        }
+
+        private void AggregateHistoricalCandle(string securityId, Candle historicalCandle, TimeSpan timeframe)
+        {
+            var candles = _multiTimeframeCandles[securityId][timeframe];
+            var candleTimestamp = new DateTime(historicalCandle.Timestamp.Ticks - (historicalCandle.Timestamp.Ticks % timeframe.Ticks), DateTimeKind.Utc);
+
+            var lastCandle = candles.LastOrDefault();
+
+            if (lastCandle == null || lastCandle.Timestamp != candleTimestamp)
+            {
+                candles.Add(new Candle
+                {
+                    Timestamp = candleTimestamp,
+                    Open = historicalCandle.Open,
+                    High = historicalCandle.High,
+                    Low = historicalCandle.Low,
+                    Close = historicalCandle.Close,
+                    Volume = historicalCandle.Volume,
+                    OpenInterest = historicalCandle.OpenInterest
+                });
+            }
+            else
+            {
+                lastCandle.High = Math.Max(lastCandle.High, historicalCandle.High);
+                lastCandle.Low = Math.Min(lastCandle.Low, historicalCandle.Low);
+                lastCandle.Close = historicalCandle.Close;
+                lastCandle.Volume += historicalCandle.Volume;
+                lastCandle.OpenInterest = historicalCandle.OpenInterest;
+            }
+        }
+
         private void AggregateIntoCandle(DashboardInstrument instrument, TimeSpan timeframe)
         {
-            if (!_multiTimeframeCandles[instrument.SecurityId].ContainsKey(timeframe))
+            if (!_multiTimeframeCandles.ContainsKey(instrument.SecurityId) || !_multiTimeframeCandles[instrument.SecurityId].ContainsKey(timeframe))
             {
-                _multiTimeframeCandles[instrument.SecurityId][timeframe] = new List<Candle>();
+                return; // Should have been initialized by backfill
             }
 
             var candles = _multiTimeframeCandles[instrument.SecurityId][timeframe];
@@ -279,7 +348,7 @@ namespace TradingConsole.Wpf.Services
 
         private string CalculateEmaSignalForTimeframe(string securityId, TimeSpan timeframe, List<Candle> candles)
         {
-            if (!_multiTimeframeAnalysisState[securityId].ContainsKey(timeframe))
+            if (!_multiTimeframeAnalysisState.ContainsKey(securityId) || !_multiTimeframeAnalysisState[securityId].ContainsKey(timeframe))
             {
                 _multiTimeframeAnalysisState[securityId][timeframe] = new TimeframeAnalysisState();
             }
@@ -433,63 +502,40 @@ namespace TradingConsole.Wpf.Services
             }
         }
 
-        /// <summary>
-        /// --- MODIFIED: Now recognizes 3-candle patterns. ---
-        /// </summary>
         private string RecognizeCandlestickPattern(List<Candle> candles)
         {
-            // --- 3-Candle Pattern Recognition ---
             if (candles.Count >= 3)
             {
-                var c1 = candles.Last(); // Current
+                var c1 = candles.Last();
                 var c2 = candles[candles.Count - 2];
                 var c3 = candles[candles.Count - 3];
                 string volInfo = GetVolumeConfirmation(c1, c2);
 
-                // Morning Star (Bullish Reversal)
-                bool isMorningStar = c3.Close < c3.Open && // 1st is red
-                                     Math.Max(c2.Open, c2.Close) < c3.Close && // 2nd gaps down
-                                     c1.Close > c1.Open && // 3rd is green
-                                     c1.Close > (c3.Open + c3.Close) / 2; // 3rd closes above midpoint of 1st
+                bool isMorningStar = c3.Close < c3.Open && Math.Max(c2.Open, c2.Close) < c3.Close && c1.Close > c1.Open && c1.Close > (c3.Open + c3.Close) / 2;
                 if (isMorningStar) return $"Morning Star{volInfo}";
 
-                // Evening Star (Bearish Reversal)
-                bool isEveningStar = c3.Close > c3.Open && // 1st is green
-                                     Math.Min(c2.Open, c2.Close) > c3.Close && // 2nd gaps up
-                                     c1.Close < c1.Open && // 3rd is red
-                                     c1.Close < (c3.Open + c3.Close) / 2; // 3rd closes below midpoint of 1st
+                bool isEveningStar = c3.Close > c3.Open && Math.Min(c2.Open, c2.Close) > c3.Close && c1.Close < c1.Open && c1.Close < (c3.Open + c3.Close) / 2;
                 if (isEveningStar) return $"Evening Star{volInfo}";
 
-                // Three White Soldiers (Bullish Continuation)
-                bool areThreeWhiteSoldiers = c3.Close > c3.Open && c2.Close > c2.Open && c1.Close > c1.Open && // All green
-                                             c2.Open > c3.Open && c2.Close > c3.Close && // 2nd higher than 1st
-                                             c1.Open > c2.Open && c1.Close > c2.Close; // 3rd higher than 2nd
+                bool areThreeWhiteSoldiers = c3.Close > c3.Open && c2.Close > c2.Open && c1.Close > c1.Open && c2.Open > c3.Open && c2.Close > c3.Close && c1.Open > c2.Open && c1.Close > c2.Close;
                 if (areThreeWhiteSoldiers) return "Three White Soldiers";
 
-                // Three Black Crows (Bearish Continuation)
-                bool areThreeBlackCrows = c3.Close < c3.Open && c2.Close < c2.Open && c1.Close < c1.Open && // All red
-                                          c2.Open < c3.Open && c2.Close < c3.Close && // 2nd lower than 1st
-                                          c1.Open < c2.Open && c1.Close < c2.Close; // 3rd lower than 2nd
+                bool areThreeBlackCrows = c3.Close < c3.Open && c2.Close < c2.Open && c1.Close < c1.Open && c2.Open < c3.Open && c2.Close < c3.Close && c1.Open < c2.Open && c1.Close < c2.Close;
                 if (areThreeBlackCrows) return "Three Black Crows";
             }
 
-            // --- 2-Candle and 1-Candle Pattern Recognition (Fallback) ---
             if (candles.Count >= 2)
             {
                 var current = candles.Last();
-                var previous = candles[candles.Count - 1];
+                var previous = candles[candles.Count - 2];
                 string volInfo = GetVolumeConfirmation(current, previous);
 
-                // Bullish Engulfing
-                if (current.Close > current.Open && previous.Close < previous.Open &&
-                    current.Close > previous.Open && current.Open < previous.Close)
+                if (current.Close > current.Open && previous.Close < previous.Open && current.Close > previous.Open && current.Open < previous.Close)
                 {
                     return $"Bullish Engulfing{volInfo}";
                 }
 
-                // Bearish Engulfing
-                if (current.Close < current.Open && previous.Close > previous.Open &&
-                    current.Open > previous.Close && current.Close < previous.Open)
+                if (current.Close < current.Open && previous.Close > previous.Open && current.Open > previous.Close && current.Close < previous.Open)
                 {
                     return $"Bearish Engulfing{volInfo}";
                 }
@@ -502,14 +548,12 @@ namespace TradingConsole.Wpf.Services
                 decimal bodySize = Math.Abs(current.Open - current.Close);
                 decimal range = current.High - current.Low;
 
-                // Marubozu
                 if (range > 0 && bodySize / range > 0.95m)
                 {
                     if (current.Close > current.Open) return $"Bullish Marubozu{volInfo}";
                     if (current.Close < current.Open) return $"Bearish Marubozu{volInfo}";
                 }
 
-                // Doji
                 if (range > 0 && bodySize / range < 0.1m)
                 {
                     return "Doji";
@@ -524,7 +568,7 @@ namespace TradingConsole.Wpf.Services
             if (previous.Volume > 0)
             {
                 decimal volChange = ((decimal)current.Volume - previous.Volume) / previous.Volume;
-                if (volChange > 0.2m) // Only show if volume increased by more than 20%
+                if (volChange > 0.2m)
                 {
                     return $" (+{volChange:P0} Vol)";
                 }
@@ -554,6 +598,27 @@ namespace TradingConsole.Wpf.Services
             if (instrument.IsFuture) return "Futures";
             if (instrument.DisplayName.ToUpper().Contains("CALL") || instrument.DisplayName.ToUpper().Contains("PUT")) return "Options";
             return "Stocks";
+        }
+
+        private string GetExchangeSegmentString(int segmentId)
+        {
+            return segmentId switch
+            {
+                1 => "NSE_EQ",
+                2 => "NSE_FNO",
+                3 => "BSE_EQ",
+                8 => "BSE_FNO",
+                0 => "IDX_I",
+                _ => "UNKNOWN"
+            };
+        }
+
+        private string GetInstrumentTypeString(DashboardInstrument instrument)
+        {
+            if (instrument.IsFuture) return "FUT";
+            if (instrument.DisplayName.ToUpper().Contains("CALL") || instrument.DisplayName.ToUpper().Contains("PUT")) return "OPT";
+            if (instrument.SegmentId == 0) return "INDEX";
+            return "EQUITY";
         }
         #endregion
 
